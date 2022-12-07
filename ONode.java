@@ -1,14 +1,20 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
+import java.util.List;
   
 // Server class
 public class ONode {
-    public static void main(String[] args)
+
+    public static List<InetAddress> vizinhos = new ArrayList<>();
+
+    public static void main(String[] args) throws UnknownHostException
     {
         System.out.println("Número de vizinhos: " + args.length);
         int index = 1;
         for (String vizinho : args) {
             System.out.println(index + "º vizinho: " + vizinho);
+            vizinhos.add(InetAddress.getByName(vizinho));
         }
 
         
@@ -34,16 +40,17 @@ public class ONode {
                 // socket object to receive incoming client
                 // requests
                 Socket client = server.accept();
+
+
   
                 // Displaying that new client is connected
                 // to server
                 System.out.println("[Server] New client connected "
                                    + client.getInetAddress()
-                                         .getHostAddress());
+                                   .getHostAddress());
   
                 // create a new thread object
-                ClientHandler clientSock
-                    = new ClientHandler(client);
+                ClientHandler clientSock = new ClientHandler(client,vizinhos);
   
                 // This thread will handle the client
                 // separately
