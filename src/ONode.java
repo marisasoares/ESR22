@@ -36,11 +36,11 @@ public class ONode extends JFrame implements ActionListener {
     byte[] sBuf; // buffer used to store the images to send to the client
 
     public static List<InetAddress> vizinhos = new ArrayList<>();
-    
+
     public static boolean isContentProvider = false;
 
     public ONode() {
-        // init Frame 
+        // init Frame
         super("Servidor");
 
         // init para a parte do servidor
@@ -51,7 +51,7 @@ public class ONode extends JFrame implements ActionListener {
 
         try {
             RTPsocket = new DatagramSocket(); // init RTP socket
-            //DatagramSocket onodeSocket = new DatagramSocket(ONODE_PORT);
+            // DatagramSocket onodeSocket = new DatagramSocket(ONODE_PORT);
             video = new VideoStream(VideoFileName); // init the VideoStream object:
             System.out.println("Servidor: vai enviar video da file " + VideoFileName);
 
@@ -81,25 +81,22 @@ public class ONode extends JFrame implements ActionListener {
     public static void main(String[] args) throws IOException {
         parseArguments(args);
         byte[] buf = new byte[15000];
-        if(isContentProvider){
+        if (isContentProvider) {
             new ONode();
         } else {
             try {
-                DatagramSocket socket = new DatagramSocket();
+                DatagramSocket socket = new DatagramSocket(25000);
                 while (true) {
-                    DatagramPacket packet = new DatagramPacket(buf,15000);
+                    DatagramPacket packet = new DatagramPacket(buf, 15000);
                     socket.receive(packet);
-                    for (InetAddress vizinho : vizinhos) {
-                        packet.setAddress(vizinho);
-                        socket.send(packet);
-                        System.out.println("[SERVER] Sent packet to: " + packet.getAddress() + ":" + packet.getPort());
-                    }
+                    Thread t = new Thread(new VideoForwarder(vizinhos,socket,packet));
+                    t.start();
+                    
                 }
             } catch (SocketException e) {
                 e.printStackTrace();
             }
-            
-            
+
         }
     }
 
@@ -123,17 +120,12 @@ public class ONode extends JFrame implements ActionListener {
                 // retrieve the packet bitstream and store it in an array of bytes
                 byte[] packet_bits = new byte[packet_length];
                 rtp_packet.getpacket(packet_bits);
-
-                // send the packet as a DatagramPacket over the UDP socket
-                for (InetAddress vizinho : vizinhos) {
-                    senddp = new DatagramPacket(packet_bits, packet_length, vizinho, RTP_dest_port);
-                    System.out.println("Send datagram to: " + senddp.getAddress() + ":" + senddp.getPort());
-                    RTPsocket.send(senddp);
-                }
-
-                System.out.println("Send frame #" + imagenb);
+                senddp = new DatagramPacket(packet_bits, packet_length, InetAddress.getByName("127.0.0.1") , RTP_dest_port);
+                Thread videoForwarder = new Thread(new VideoForwarder(vizinhos, RTPsocket, senddp));
+                videoForwarder.start();
+                //System.out.println("Send frame #" + imagenb);
                 // print the header bitstream
-                rtp_packet.printheader();
+                //rtp_packet.printheader();
 
                 // update GUI
                 // label.setText("Send frame #" + imagenb);
@@ -147,17 +139,16 @@ public class ONode extends JFrame implements ActionListener {
         }
     }
 
-    public static void parseArguments(String[] args) throws UnknownHostException{
-        if(args.length == 0){
+    public static void parseArguments(String[] args) throws UnknownHostException {
+        if (args.length == 0) {
             System.out.println("Syntax : ONode [-f file] [neighbour ipaddresses]");
             System.exit(1);
-        }                   
-
+        }
 
         for (int i = 0; i < args.length; i++) {
-            if(args[i].equals("-f")){
-                if(args.length-1 >= i+1){
-                   VideoFileName = args[i+1];
+            if (args[i].equals("-f")) {
+                if (args.length - 1 >= i + 1) {
+                    VideoFileName = args[i + 1];
                     System.out.println("File to send: " + VideoFileName);
                     i += 2;
                     File f = new File(VideoFileName);
@@ -170,18 +161,17 @@ public class ONode extends JFrame implements ActionListener {
                         isContentProvider = true;
                     } else {
                         System.err.println("[ERROR] File: " + VideoFileName + " not found");
-                        //System.exit(1);
+                        // System.exit(1);
                     }
                 } else {
                     System.err.println("[ERROR] Syntax error: No file specified with -f flag");
                     System.out.println("Syntax : ONode [-f file] [neighbour ipaddresses]");
                     System.exit(1);
                 }
-            } else{
+            } else {
                 vizinhos.add(InetAddress.getByName(args[i]));
             }
         }
-  
 
         System.out.println("Número de vizinhos: " + vizinhos.size());
         int index = 1;
