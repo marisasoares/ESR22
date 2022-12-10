@@ -3,7 +3,6 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.awt.event.*;
-
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.Timer;
@@ -54,12 +53,12 @@ public class ONode extends JFrame implements ActionListener {
             // DatagramSocket onodeSocket = new DatagramSocket(ONODE_PORT);
             video = new VideoStream(VideoFileName); // init the VideoStream object:
             System.out.println("Servidor: vai enviar video da file " + VideoFileName);
-
         } catch (SocketException e) {
             System.out.println("Servidor: erro no socket: " + e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Servidor: erro no video: " + e.getMessage());
+            
         }
 
         // Handler to close the main window
@@ -76,13 +75,17 @@ public class ONode extends JFrame implements ActionListener {
         getContentPane().add(label, BorderLayout.CENTER);
 
         sTimer.start();
+
+        
     }
 
     public static void main(String[] args) throws IOException {
         parseArguments(args);
         byte[] buf = new byte[15000];
         if (isContentProvider) {
-            new ONode();
+            ONode o = new ONode();
+            o.pack();
+            o.setVisible(true);
         } else {
             try {
                 DatagramSocket socket = new DatagramSocket(25000);
@@ -105,7 +108,9 @@ public class ONode extends JFrame implements ActionListener {
         // if the current image nb is less than the length of the video
         if (imagenb < VIDEO_LENGTH) {
             // update current imagenb
+
             imagenb++;
+
 
             try {
                 // get next frame to send from the video, as well as its size
@@ -119,16 +124,19 @@ public class ONode extends JFrame implements ActionListener {
 
                 // retrieve the packet bitstream and store it in an array of bytes
                 byte[] packet_bits = new byte[packet_length];
+                
                 rtp_packet.getpacket(packet_bits);
+                
                 senddp = new DatagramPacket(packet_bits, packet_length, InetAddress.getByName("127.0.0.1") , RTP_dest_port);
+             
                 Thread videoForwarder = new Thread(new VideoForwarder(vizinhos, RTPsocket, senddp));
                 videoForwarder.start();
-                //System.out.println("Send frame #" + imagenb);
+                
                 // print the header bitstream
                 //rtp_packet.printheader();
 
-                // update GUI
-                // label.setText("Send frame #" + imagenb);
+                // update GUsocketI
+                label.setText("Send frame #" + imagenb);
             } catch (Exception ex) {
                 System.out.println("Exception caught: " + ex);
                 System.exit(0);
@@ -136,6 +144,7 @@ public class ONode extends JFrame implements ActionListener {
         } else {
             // if we have reached the end of the video file, stop the timer
             sTimer.stop();
+//imagenb = 1;
         }
     }
 
@@ -144,24 +153,20 @@ public class ONode extends JFrame implements ActionListener {
             System.out.println("Syntax : ONode [-f file] [neighbour ipaddresses]");
             System.exit(1);
         }
+        System.out.println(args.length);
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-f")) {
                 if (args.length - 1 >= i + 1) {
                     VideoFileName = args[i + 1];
                     System.out.println("File to send: " + VideoFileName);
-                    i += 2;
+                    i += 1;
                     File f = new File(VideoFileName);
                     if (f.exists()) {
-                        // Create a Main object
-                        ONode s = new ONode();
-                        // show GUI: (opcional!)
-                        s.pack();
-                        s.setVisible(true);
                         isContentProvider = true;
                     } else {
                         System.err.println("[ERROR] File: " + VideoFileName + " not found");
-                        // System.exit(1);
+                        System.exit(1);
                     }
                 } else {
                     System.err.println("[ERROR] Syntax error: No file specified with -f flag");
