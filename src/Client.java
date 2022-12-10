@@ -64,7 +64,7 @@ public class Client {
   class playButtonListener implements ActionListener {
     public void actionPerformed(ActionEvent e) {
 
-      System.out.println("Play Button pressed !");
+      System.out.println("Play Button pressed");
       // start the timers ...
       cTimer.start();
     }
@@ -75,7 +75,7 @@ public class Client {
   class tearButtonListener implements ActionListener {
     public void actionPerformed(ActionEvent e) {
 
-      System.out.println("Teardown Button pressed !");
+      System.out.println("Teardown Button pressed");
       // stop the timer
       cTimer.stop();
       // exit

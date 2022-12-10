@@ -52,12 +52,12 @@ public class ONode extends JFrame implements ActionListener {
             RTPsocket = new DatagramSocket(); // init RTP socket
             // DatagramSocket onodeSocket = new DatagramSocket(ONODE_PORT);
             video = new VideoStream(VideoFileName); // init the VideoStream object:
-            System.out.println("Servidor: vai enviar video da file " + VideoFileName);
+            System.out.println("[RTP SERVER]: File to send: " + VideoFileName);
         } catch (SocketException e) {
-            System.out.println("Servidor: erro no socket: " + e.getMessage());
+            System.out.println("[RTP SERVER]: Socket error: " + e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("Servidor: erro no video: " + e.getMessage());
+            System.out.println("[RTP SERVER]: Video error: " + e.getMessage());
             
         }
 
@@ -81,6 +81,10 @@ public class ONode extends JFrame implements ActionListener {
 
     public static void main(String[] args) throws IOException {
         parseArguments(args);
+        Thread networkMonitorListener = new Thread(new NetworkMonitorListener());
+        networkMonitorListener.start();   
+        Thread networkMonitor = new Thread(new NetworkMonitor(vizinhos));
+        networkMonitor.start(); 
         byte[] buf = new byte[15000];
         if (isContentProvider) {
             ONode o = new ONode();
@@ -159,7 +163,6 @@ public class ONode extends JFrame implements ActionListener {
             if (args[i].equals("-f")) {
                 if (args.length - 1 >= i + 1) {
                     VideoFileName = args[i + 1];
-                    System.out.println("File to send: " + VideoFileName);
                     i += 1;
                     File f = new File(VideoFileName);
                     if (f.exists()) {

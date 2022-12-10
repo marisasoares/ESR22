@@ -28,13 +28,9 @@ public class VideoForwarder implements Runnable{
                 try {
                     socket.send(packet);
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
-            } else {
-                System.out.println("Evitei mandar para: " + receivedFromIP);
-            }
-                
+            }    
         }
     }
     
