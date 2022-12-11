@@ -24,15 +24,15 @@ public class NetworkMonitorListener implements Runnable {
                     if(readyToSend){
                         //Enviar tabela sem a linha do endereço destino
                         RoutingTable table = NetworkMonitor.routingTable.clone();
-                        table.removeRow(row.getVizinho());
+                        table.removeRow(row.getNetwork());
                         statPacket.setTable(table);
                         packet.setData(statPacket.convertToBytes());  
                         packet.setLength(statPacket.convertToBytes().length);
-                        packet.setAddress(row.getVizinho());
+                        packet.setAddress(row.getNetwork());
                         socket.send(packet);
                     }           
                 }
-            }
+            }   
         
         } catch (SocketException e) {
             e.printStackTrace();
@@ -43,6 +43,4 @@ public class NetworkMonitorListener implements Runnable {
         }
         
     }
-
-    
 }

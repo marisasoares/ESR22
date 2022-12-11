@@ -3,13 +3,13 @@ import java.net.InetAddress;
 
 public class RoutingTableRow implements Serializable{
     private InetAddress nextHop;
-    private InetAddress vizinho;
+    private InetAddress network;
     private int hopNumber;
 
 
-    public RoutingTableRow(InetAddress vizinho, InetAddress nextHop, int hopNumber) {
+    public RoutingTableRow(InetAddress network, InetAddress nextHop, int hopNumber) {
         this.nextHop = nextHop;
-        this.vizinho = vizinho;
+        this.network = network;
         this.hopNumber = hopNumber;
     }
 
@@ -25,12 +25,12 @@ public class RoutingTableRow implements Serializable{
         this.nextHop = nextHop;
     }
 
-    public InetAddress getVizinho() {
-        return this.vizinho;
+    public InetAddress getNetwork() {
+        return this.network;
     }
 
-    public void setVizinho(InetAddress vizinho) {
-        this.vizinho = vizinho;
+    public void setNetwork(InetAddress network) {
+        this.network = network;
     }
 
     public int getHopNumber() {
@@ -45,7 +45,7 @@ public class RoutingTableRow implements Serializable{
     public String toString() {
         return "{" +
             " nextHop='" + getNextHop() + "'" +
-            ", vizinho='" + getVizinho() + "'" +
+            ", network='" + getNetwork() + "'" +
             ", hopNumber='" + getHopNumber() + "'" +
             "}";
     }

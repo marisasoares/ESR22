@@ -3,6 +3,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.List;
 
 public class NetworkMonitor implements Runnable {
@@ -12,9 +13,10 @@ public class NetworkMonitor implements Runnable {
     public byte[] buffer = new byte[BUFFER_SIZE];
     public static RoutingTable routingTable = new RoutingTable();
 
-    public NetworkMonitor(List<InetAddress> vizinhos){
+    public NetworkMonitor(List<InetAddress> vizinhos) throws UnknownHostException{
+        InetAddress mask = InetAddress.getByName("255.255.255.0");
         for (InetAddress vizinho : vizinhos) {
-            routingTable.addRow(vizinho, vizinho, 1);
+            routingTable.addRow(IPUtils.computeNetworkAddress(vizinho, mask), vizinho, 1);
         }
     }
 
@@ -26,10 +28,10 @@ public class NetworkMonitor implements Runnable {
             while (true) {
                 for (RoutingTableRow row : routingTable.getTable()) {
                     RoutingTable tableToSend = routingTable.clone();
-                    tableToSend.removeRow(row.getVizinho());
+                    tableToSend.removeRow(row.getNetwork());
                     StatPacket statPacket = new StatPacket(tableToSend);
                     DatagramPacket packet = new DatagramPacket(buffer, statPacket.convertToBytes().length);
-                    packet.setAddress(row.getVizinho());
+                    packet.setAddress(row.getNetwork());
                     packet.setPort(NETWORK_MONITOR_PORT);
                     packet.setData(statPacket.convertToBytes());
                     socket.send(packet);
