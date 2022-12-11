@@ -25,6 +25,7 @@ public class NetworkMonitorListener implements Runnable {
                 for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
                     if(readyToSend){
                         packet.setData(statPacket.convertToBytes());  
+                        packet.setLength(statPacket.convertToBytes().length);
                         packet.setAddress(row.getVizinho());
                         socket.send(packet);
                     }           

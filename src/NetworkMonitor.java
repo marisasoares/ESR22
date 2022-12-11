@@ -29,6 +29,7 @@ public class NetworkMonitor implements Runnable {
                 packet.setAddress(row.getVizinho());
                 packet.setPort(NETWORK_MONITOR_PORT);
                 packet.setData(statPacket.convertToBytes());
+                packet.setLength(statPacket.convertToBytes().length);
                 socket.send(packet);
             }
         
