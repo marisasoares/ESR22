@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.time.Duration;
+import java.time.LocalDateTime;
 
 
 public class NetworkMonitorListener implements Runnable {
@@ -18,7 +20,8 @@ public class NetworkMonitorListener implements Runnable {
                 DatagramPacket packet = new DatagramPacket(buffer, BUFFER_SIZE);
                 socket.receive(packet);
                 StatPacket statPacket = StatPacket.fromBytes(packet.getData());
-                NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress());
+                Duration duration = Duration.between( LocalDateTime.now() , statPacket.getTimestamp());
+                NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress(),duration.toMillis());
                 boolean readyToSend = statPacket.updatePacket(NetworkMonitor.routingTable);
                 for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
                     if(readyToSend){

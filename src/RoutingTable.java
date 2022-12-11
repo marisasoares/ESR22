@@ -65,25 +65,36 @@ public class RoutingTable implements Serializable{
         return this.table;
     }
 
-    public boolean entryExists(InetAddress network, List<RoutingTableRow> table){
+    public boolean entryExists(InetAddress network){
         boolean contains = false;
-        for (RoutingTableRow routingTableRow : table) {
+        for (RoutingTableRow routingTableRow : this.table) {
             if(routingTableRow.getNetwork().equals(network)) contains = true;
         }
         return contains;
     }
 
-    public void updateTable(RoutingTable table,InetAddress network) throws SocketException{
-            List<RoutingTableRow> currentTable = new ArrayList<>(this.table);
+    public int getEntryIndex(InetAddress network){
+        int index = 0;
+        for (RoutingTableRow routingTableRow : this.table) {
+            if(routingTableRow.getNetwork().equals(network)) return index;
+            index++;
+        }
+        return -1;
+    }
+
+    public void updateTable(RoutingTable newTable,InetAddress network, long delay) throws SocketException{
+            RoutingTable currentTable = this.clone();
             boolean changed = false;
-            for (RoutingTableRow routingTableRow : table.getTable()) {
-                if(!entryExists(routingTableRow.getNetwork(),currentTable) && !getAllIPsInterfaces().contains(routingTableRow.getNetwork())){
-                    RoutingTableRow row = new RoutingTableRow(routingTableRow.getNetwork(), network, getHopNumber(network)+1);
-                    currentTable.add(row);
+            for (RoutingTableRow routingTableRow : newTable.getTable()) {
+                if(currentTable.entryExists(network)){
+                    currentTable.table.get(currentTable.getEntryIndex(network)).setDelay(delay);
+                } else if(!getAllIPsInterfaces().contains(routingTableRow.getNetwork())){
+                    RoutingTableRow row = new RoutingTableRow(routingTableRow.getNetwork(), network, routingTableRow.getHopNumber()+1,routingTableRow.getRequestsStream(),routingTableRow.getDelay());
+                    currentTable.table.add(row);
                     changed = true;
                 }
             }
-            this.table = currentTable;
+            this.table = currentTable.table;
             // DEBUG -----------------------------------------------------------
             if(changed){
                 NetworkMonitor.routingTable.printTable();
@@ -103,17 +114,20 @@ public class RoutingTable implements Serializable{
         System.out.print("\033[H\033[2J");  
         StringBuilder sb = new StringBuilder();
         sb.append("ROUTING TABLE\n");
-        sb.append("┌──────────────────┬──────────────────┬────────────┐\n");
-        sb.append("│      Network     │     Next Hop     │ Hop Number │\n");
+        sb.append("┌──────────────────┬──────────────────┬────────────┬────────────┬────────────┐\n");
+        sb.append("│      Network     │     Next Hop     │ Hop Number │  Requests  │  Delay ms  │\n");
         Iterator <RoutingTableRow> it = table.iterator();
         while (it.hasNext()) {
             RoutingTableRow row = it.next();
-            sb.append("├──────────────────┼──────────────────┼────────────┤\n");
+            sb.append("├──────────────────┼──────────────────┼────────────┼────────────┼────────────┤\n");
             sb.append("│ " + String.format("%-16s", row.getNetwork()) + " ");
             sb.append("│ " + String .format("%-16s", row.getNextHop()) + " ");
-            sb.append("│ " + String.format("%-10s", row.getHopNumber()) + " │\n");
+            sb.append("│ " + String.format("%-10s", row.getHopNumber()) + " ");
+            sb.append("│ " + String.format("%-10s", row.getRequestsStream()) + " ");
+            sb.append("│ " + String.format("%-10s", row.getRequestsStream()) + " │\n");
+
         }   
-            sb.append("└──────────────────┴──────────────────┴────────────┘\n");
+            sb.append("└──────────────────┴──────────────────┴────────────┴────────────┴────────────┘\n");
         
         System.out.println(sb.toString());
         System.out.flush(); 
