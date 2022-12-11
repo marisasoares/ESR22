@@ -83,9 +83,7 @@ public class RoutingTable implements Serializable{
             this.table = currentTable;
             // DEBUG -----------------------------------------------------------
             if(changed){
-                System.out.print("\033[H\033[2J");  
-                System.out.flush();  
-                System.out.println(NetworkMonitor.routingTable.printTable());
+                NetworkMonitor.routingTable.printTable();
             }
             
         
@@ -98,17 +96,24 @@ public class RoutingTable implements Serializable{
         return rt;
     }
 
-    public String printTable() {
+    public void printTable() {
+        System.out.print("\033[H\033[2J");  
         StringBuilder sb = new StringBuilder();
         sb.append("ROUTING TABLE\n");
-        sb.append("-------------------------------------------\n");
-        sb.append("|     Vizinho     | Next Hop | Hop Number |\n");
-        sb.append("-------------------------------------------\n");
-        for (RoutingTableRow routingTableRow : table) {
-            sb.append(routingTableRow.getVizinho() + " | " + routingTableRow.getNextHop() + " | " + routingTableRow.getHopNumber() + "|\n");
-            sb.append("-------------------------------------------\n");
-        }
-        return sb.toString();
+        sb.append("┌──────────────────┬──────────────────┬────────────┐\n");
+        sb.append("│      Vizinho     │     Next Hop     │ Hop Number │\n");
+        Iterator <RoutingTableRow> it = table.iterator();
+        while (it.hasNext()) {
+            RoutingTableRow row = it.next();
+            sb.append("├──────────────────┼──────────────────┼────────────┤\n");
+            sb.append("│ " + String.format("%-16s", row.getVizinho()) + " ");
+            sb.append("│ " + String.format("%-16s", row.getNextHop()) + " ");
+            sb.append("│ " + String.format("%-10s", row.getHopNumber()) + " │\n");
+        }   
+            sb.append("└──────────────────┴──────────────────┴────────────┘\n");
+        
+        System.out.println(sb.toString());
+        System.out.flush(); 
     }
 
 
