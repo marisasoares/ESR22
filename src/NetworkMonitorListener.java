@@ -22,6 +22,10 @@ public class NetworkMonitorListener implements Runnable {
                 boolean readyToSend = statPacket.updatePacket(NetworkMonitor.routingTable);
                 for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
                     if(readyToSend){
+                        //Enviar tabela sem a linha do endereço destino
+                        RoutingTable table = NetworkMonitor.routingTable.clone();
+                        table.removeRow(row.getVizinho());
+                        statPacket.setTable(table);
                         packet.setData(statPacket.convertToBytes());  
                         packet.setLength(statPacket.convertToBytes().length);
                         packet.setAddress(row.getVizinho());
