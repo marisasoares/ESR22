@@ -1,7 +1,9 @@
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+
 
 public class RoutingTable implements Serializable{
     
@@ -27,9 +29,10 @@ public class RoutingTable implements Serializable{
 
 
     public void removeRow(InetAddress vizinho){
-        for (RoutingTableRow routingTableRow : table) {
-            if(routingTableRow.getVizinho().equals(vizinho)){
-                table.remove(routingTableRow);
+        Iterator<RoutingTableRow> it = table.iterator();
+        while (it.hasNext()) {
+            if(it.next().getVizinho().equals(vizinho)){
+                it.remove();
             }
         }
     }
@@ -59,34 +62,61 @@ public class RoutingTable implements Serializable{
         return this.table;
     }
 
-    public boolean vizinhoExists(InetAddress vizinho){
+    public boolean vizinhoExists(InetAddress vizinho, List<RoutingTableRow> table){
         boolean contains = false;
         for (RoutingTableRow routingTableRow : table) {
-            if(routingTableRow.equals(vizinho)) contains = true;
+            if(routingTableRow.getVizinho().equals(vizinho)) contains = true;
         }
         return contains;
     }
 
     public void updateTable(RoutingTable table,InetAddress vizinho){
-        for (RoutingTableRow routingTableRow : table.getTable()) {
-            if(!vizinhoExists(routingTableRow.getVizinho())){
-                table.addRow(routingTableRow.getVizinho(),vizinho,getHopNumber(vizinho)+1);
+            List<RoutingTableRow> currentTable = new ArrayList<>(this.table);
+            boolean changed = false;
+            for (RoutingTableRow routingTableRow : table.getTable()) {
+                if(!vizinhoExists(routingTableRow.getVizinho(),currentTable)){
+                    RoutingTableRow row = new RoutingTableRow(routingTableRow.getVizinho(), vizinho, getHopNumber(vizinho)+1);
+                    currentTable.add(row);
+                    changed = true;
+                }
             }
-        }
+            this.table = currentTable;
+            // DEBUG -----------------------------------------------------------
+            if(changed){
+                System.out.print("\033[H\033[2J");  
+                System.out.flush();  
+                System.out.println(NetworkMonitor.routingTable.printTable());
+            }
+            
+        
     }
 
 
-    @Override
-    public String toString() {
+    public RoutingTable clone(){
+        RoutingTable rt = new RoutingTable();
+        rt.table = new ArrayList<>(table);
+        return rt;
+    }
+
+    public String printTable() {
         StringBuilder sb = new StringBuilder();
         sb.append("ROUTING TABLE\n");
         sb.append("-------------------------------------------\n");
         sb.append("|     Vizinho     | Next Hop | Hop Number |\n");
         sb.append("-------------------------------------------\n");
         for (RoutingTableRow routingTableRow : table) {
-            sb.append(routingTableRow.getVizinho() + " | " + routingTableRow.getNextHop() + " | " + routingTableRow.getHopNumber());
+            sb.append(routingTableRow.getVizinho() + " | " + routingTableRow.getNextHop() + " | " + routingTableRow.getHopNumber() + "|\n");
             sb.append("-------------------------------------------\n");
         }
         return sb.toString();
     }
+
+
+    @Override
+    public String toString() {
+        return "{" +
+            " table='" + getTable() + "'" +
+            "}";
+    }
+
 }

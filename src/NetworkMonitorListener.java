@@ -3,10 +3,11 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 
+
 public class NetworkMonitorListener implements Runnable {
 
     public static int NETWORK_MONITOR_PORT = 6060;
-    public static int BUFFER_SIZE = 15000;
+    public static int BUFFER_SIZE = 150000;
     public byte[] buffer = new byte[BUFFER_SIZE];
 
     @Override
@@ -18,9 +19,6 @@ public class NetworkMonitorListener implements Runnable {
                 socket.receive(packet);
                 StatPacket statPacket = StatPacket.fromBytes(packet.getData());
                 NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress());
-                System.out.print("\033[H\033[2J");  
-                System.out.flush();  
-                System.out.println(NetworkMonitor.routingTable.toString());
                 boolean readyToSend = statPacket.updatePacket(NetworkMonitor.routingTable);
                 for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
                     if(readyToSend){

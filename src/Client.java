@@ -120,7 +120,7 @@ public class Client {
         icon = new ImageIcon(image);
         iconLabel.setIcon(icon);
       } catch (InterruptedIOException iioe) {
-        System.out.println("Nothing to read");
+        System.out.println("[ERROR] Nothing to read");
       } catch (IOException ioe) {
         System.out.println("Exception caught: " + ioe);
       }

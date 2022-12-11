@@ -1,6 +1,7 @@
+import java.io.Serializable;
 import java.net.InetAddress;
 
-public class RoutingTableRow{
+public class RoutingTableRow implements Serializable{
     private InetAddress nextHop;
     private InetAddress vizinho;
     private int hopNumber;
@@ -48,8 +49,4 @@ public class RoutingTableRow{
             ", hopNumber='" + getHopNumber() + "'" +
             "}";
     }
-
-    
-    
-
 }

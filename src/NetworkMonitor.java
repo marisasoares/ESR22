@@ -8,7 +8,7 @@ import java.util.List;
 public class NetworkMonitor implements Runnable {
 
     public static int NETWORK_MONITOR_PORT = 6060;
-    public static int BUFFER_SIZE = 15000;
+    public static int BUFFER_SIZE = 150000;
     public byte[] buffer = new byte[BUFFER_SIZE];
     public static RoutingTable routingTable = new RoutingTable();
 
@@ -22,16 +22,20 @@ public class NetworkMonitor implements Runnable {
     public void run() { 
         System.out.println("[NETWORK MONITOR] Listening on port: " + NetworkMonitorListener.NETWORK_MONITOR_PORT);
 
-        try (DatagramSocket socket = new DatagramSocket(NETWORK_MONITOR_PORT)) {
-            DatagramPacket packet = new DatagramPacket(buffer, BUFFER_SIZE);
-            for (RoutingTableRow row : routingTable.getTable()) {
-                StatPacket statPacket = new StatPacket(routingTable);
-                packet.setAddress(row.getVizinho());
-                packet.setPort(NETWORK_MONITOR_PORT);
-                packet.setData(statPacket.convertToBytes());
-                packet.setLength(statPacket.convertToBytes().length);
-                socket.send(packet);
+        try (DatagramSocket socket = new DatagramSocket()) {
+            while (true) {
+                for (RoutingTableRow row : routingTable.getTable()) {
+                    RoutingTable tableToSend = routingTable.clone();
+                    tableToSend.removeRow(row.getVizinho());
+                    StatPacket statPacket = new StatPacket(tableToSend);
+                    DatagramPacket packet = new DatagramPacket(buffer, statPacket.convertToBytes().length);
+                    packet.setAddress(row.getVizinho());
+                    packet.setPort(NETWORK_MONITOR_PORT);
+                    packet.setData(statPacket.convertToBytes());
+                    socket.send(packet);
+                }
             }
+            
         
         } catch (SocketException e) {
             e.printStackTrace();
@@ -39,7 +43,5 @@ public class NetworkMonitor implements Runnable {
             e.printStackTrace();
         }
         
-    }
-
-    
+    }    
 }
