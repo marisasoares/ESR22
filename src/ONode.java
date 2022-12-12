@@ -18,7 +18,7 @@ public class ONode extends JFrame implements ActionListener {
     // ----------------
     DatagramPacket senddp; // UDP packet containing the video frames (to send)A
     DatagramSocket RTPsocket; // socket to be used to send and receive UDP packet
-    int RTP_dest_port = 25000; // destination port for RTP packets
+    public static int RTP_dest_port = 25000; // destination port for RTP packets
     InetAddress ClientIPAddr; // Client IP address
 
     static String VideoFileName; // video file to request to the server
@@ -37,6 +37,7 @@ public class ONode extends JFrame implements ActionListener {
     public static List<InetAddress> vizinhos = new ArrayList<>();
 
     public static boolean isContentProvider = false;
+    public static boolean isClient = false;
 
     public ONode() {
         // init Frame
@@ -86,13 +87,17 @@ public class ONode extends JFrame implements ActionListener {
         Thread networkMonitor = new Thread(new NetworkMonitor(vizinhos));
         networkMonitor.start(); 
         byte[] buf = new byte[15000];
+        DatagramSocket socket = new DatagramSocket(RTP_dest_port);
+        if(ONode.isClient){
+            Thread client = new Thread(new Client(vizinhos,socket));
+            client.start();
+        }
         if (isContentProvider) {
             ONode o = new ONode();
             o.pack();
             o.setVisible(true);
         } else {
             try {
-                DatagramSocket socket = new DatagramSocket(25000);
                 while (true) {
                     DatagramPacket packet = new DatagramPacket(buf, 15000);
                     socket.receive(packet);
@@ -152,9 +157,11 @@ public class ONode extends JFrame implements ActionListener {
         }
     }
 
-    public static void parseArguments(String[] args) throws UnknownHostException {
+    public static void parseArguments(String[] args) throws IOException {
         if (args.length == 0) {
-            System.out.println("Syntax : ONode [-f file] [neighbour ipaddresses]");
+            System.out.println("Syntax : ONode [-c] [-f file] [neighbour ipaddresses]");
+            System.out.println("        -c: client receive video");
+            System.out.println("        -f file: file to stream");
             System.exit(1);
         }
         System.out.println(args.length);
@@ -177,7 +184,11 @@ public class ONode extends JFrame implements ActionListener {
                     System.exit(1);
                 }
             } else {
-                vizinhos.add(InetAddress.getByName(args[i]));
+                if(args[i].equals("-c")){
+                    ONode.isClient = true;
+                } else {
+                   vizinhos.add(InetAddress.getByName(args[i])); 
+                }
             }
         }
 

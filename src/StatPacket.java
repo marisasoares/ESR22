@@ -4,25 +4,33 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 public class StatPacket implements Serializable{
     
-    private LocalDateTime timestamp;
+    private long timestamp;
     private int timeToLive;
     private RoutingTable table;
+    private boolean requestVideo;
 
     public StatPacket(RoutingTable table){
-        this.timestamp = LocalDateTime.now();
         this.timeToLive = 60;
-        this.table = table;
+        this.table = table;        
+        this.timestamp = System.currentTimeMillis();
+        this.requestVideo = false;
     }
 
-    public LocalDateTime getTimestamp() {
+    public StatPacket(Boolean requestVideo){
+        this.timeToLive = 0;
+        this.table = null;        
+        this.timestamp = System.currentTimeMillis();
+        this.requestVideo = true;
+    }
+
+    public long getTimestamp() {
         return this.timestamp;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
     }
 
@@ -34,12 +42,21 @@ public class StatPacket implements Serializable{
         this.timeToLive = timeToLive;
     }
 
+    public boolean getRequestVideo() {
+        return this.requestVideo;
+    }
+
+    public void setRequestVideo(boolean requestVideo) {
+        this.requestVideo = requestVideo;
+    }
+    
+
     public boolean updatePacket(RoutingTable table){
         boolean readyToSend = true;
-        timestamp = LocalDateTime.now();
         timeToLive -= 1;
         this.table = table;
         if(timeToLive <= 0) readyToSend = false;
+        timestamp = System.currentTimeMillis();
         return readyToSend;
     }
     
@@ -58,6 +75,7 @@ public class StatPacket implements Serializable{
             " timestamp='" + getTimestamp() + "'" +
             ", timeToLive='" + getTimeToLive() + "'" +
             ", table='" + getTable() + "'" +
+            ", requestVideo='" + getRequestVideo() + "'" +
             "}";
     }
 

@@ -12,6 +12,7 @@ public class NetworkMonitor implements Runnable {
     public static int BUFFER_SIZE = 150000;
     public byte[] buffer = new byte[BUFFER_SIZE];
     public static RoutingTable routingTable = new RoutingTable();
+    public static boolean receivingStream = false;
 
     public NetworkMonitor(List<InetAddress> vizinhos) throws UnknownHostException{
         InetAddress mask = InetAddress.getByName("255.255.255.0");

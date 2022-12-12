@@ -4,9 +4,10 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.Timer;
+import java.util.List;
 
 // Client class
-public class Client {
+public class Client implements Runnable{
 
   // GUI
   // ----
@@ -25,6 +26,7 @@ public class Client {
   DatagramPacket rcvdp; // UDP packet received from the server (to receive)
   DatagramSocket RTPsocket; // socket to be used to send and receive UDP packet
   static int RTP_RCV_PORT = 25000; // port where the client will receive the RTP packets
+  static int BUFFER_SIZE = 15000;
 
   Timer cTimer; // timer used to receive data from the UDP socket
   byte[] cBuf; // buffer used to store data received from the server
@@ -32,27 +34,28 @@ public class Client {
   /*
    * Construtor do cliente
    */
-  public Client() {
+  public Client(List<InetAddress> vizinhos, DatagramSocket socket) throws IOException {
     createAndShowGUI();
     // Inicialização das variáveis
     cTimer = new Timer(20, new clientTimerListener());
     cTimer.setInitialDelay(0);
     cTimer.setCoalesce(true);
-    cBuf = new byte[15000]; // allocate enough memory for the buffer used to receive data from the server
+    cBuf = new byte[BUFFER_SIZE]; // allocate enough memory for the buffer used to receive data from the server
     try {
       // socket e video
-      RTPsocket = new DatagramSocket(RTP_RCV_PORT); // init RTP socket (o mesmo para o cliente e servidor)
+      RTPsocket = socket; // init RTP socket (o mesmo para o cliente e servidor)
+      for (InetAddress vizinho : vizinhos) {
+          StatPacket statPacket = new StatPacket(true);
+          DatagramPacket packet = new DatagramPacket(statPacket.convertToBytes(), statPacket.convertToBytes().length);
+          packet.setAddress(vizinho);
+          packet.setPort(NetworkMonitor.NETWORK_MONITOR_PORT);
+          RTPsocket.send(packet);
+          System.out.println("Enviado request video!");
+      }
       RTPsocket.setSoTimeout(5000); // setimeout to 5s
     } catch (SocketException e) {
-      System.out.println("Cliente: erro no socket: " + e.getMessage());
+      System.out.println("[ERROR] Can't connect to server");
     }
-  }
-
-  // ------------------------------------
-  // main
-  // ------------------------------------
-  public static void main(String argv[]) throws Exception {
-    new Client();
   }
 
   // ------------------------------------
@@ -162,5 +165,10 @@ public class Client {
     f.getContentPane().add(mainPanel, BorderLayout.CENTER);
     f.setSize(new Dimension(390, 370));
     f.setVisible(true);
+  }
+
+  @Override
+  public void run() {
+    //new Client();
   }
 }

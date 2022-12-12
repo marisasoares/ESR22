@@ -1,9 +1,9 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
-import java.time.Duration;
-import java.time.LocalDateTime;
+
 
 
 public class NetworkMonitorListener implements Runnable {
@@ -19,22 +19,30 @@ public class NetworkMonitorListener implements Runnable {
             while (true) {
                 DatagramPacket packet = new DatagramPacket(buffer, BUFFER_SIZE);
                 socket.receive(packet);
+                InetAddress originNetworkAddress = IPUtils.computeNetworkAddress(packet.getAddress(), InetAddress.getByName("255.255.255.0"));
                 StatPacket statPacket = StatPacket.fromBytes(packet.getData());
-                Duration duration = Duration.between( LocalDateTime.now() , statPacket.getTimestamp());
-                NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress(),duration.toMillis());
-                boolean readyToSend = statPacket.updatePacket(NetworkMonitor.routingTable);
-                for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
-                    if(readyToSend){
-                        //Enviar tabela sem a linha do endereço destino
-                        RoutingTable table = NetworkMonitor.routingTable.clone();
-                        table.removeRow(row.getNetwork());
-                        statPacket.setTable(table);
-                        packet.setData(statPacket.convertToBytes());  
-                        packet.setLength(statPacket.convertToBytes().length);
-                        packet.setAddress(row.getNetwork());
-                        socket.send(packet);
-                    }           
+                if(statPacket.getRequestVideo()){
+                    System.out.println("Recebido request video!!");
+                    NetworkMonitor.routingTable.setRequestVideo(originNetworkAddress, true);
+                } else{
+                    long delay = System.currentTimeMillis() - statPacket.getTimestamp();
+                    NetworkMonitor.routingTable.updateTable(statPacket.getTable(), originNetworkAddress, delay);
+                    boolean readyToSend = statPacket.updatePacket(NetworkMonitor.routingTable);
+                    for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
+                        if(readyToSend){
+                            //Enviar tabela sem a linha do endereço destino
+                            RoutingTable table = NetworkMonitor.routingTable.clone();
+                            table.removeRow(row.getNetwork());
+                            statPacket.setTable(table);
+                            packet.setData(statPacket.convertToBytes());  
+                            packet.setLength(statPacket.convertToBytes().length);
+                            packet.setAddress(row.getNetwork());
+                            socket.send(packet);
+                        }           
+                    } 
                 }
+
+                
             }   
         
         } catch (SocketException e) {
