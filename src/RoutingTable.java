@@ -82,7 +82,7 @@ public class RoutingTable implements Serializable{
         return -1;
     }
 
-    public void setRequestVideo(InetAddress network, boolean requestVideo){
+    public boolean setRequestVideo(InetAddress network, boolean requestVideo){
         boolean changed = false;
         RoutingTable currentTable = this.clone();
         if(currentTable.entryExists(network)){
@@ -92,12 +92,10 @@ public class RoutingTable implements Serializable{
             currentTable.table.get(currentTable.getEntryIndex(network)).setRequestStream(requestVideo);
         } 
         this.table = currentTable.table;
-        if(changed){
-            this.printTable();
-        }
+        return changed;
     }
 
-    public void updateTable(RoutingTable newTable,InetAddress ipReceivedFromNetwork, long delay) throws SocketException{
+    public void updateTable(RoutingTable newTable,InetAddress ipReceivedFromNetwork, boolean requestVideo ,long delay) throws SocketException{
             RoutingTable currentTable = this.clone();
             boolean changed = false;
             for (RoutingTableRow routingTableRow : newTable.getTable()) {
@@ -109,7 +107,7 @@ public class RoutingTable implements Serializable{
                     currentTable.table.add(row);
                     changed = true;
                 } else if(currentTable.entryExists(routingTableRow.getNetwork())){
-                    currentTable.setRequestVideo(routingTableRow.getNetwork(), routingTableRow.getRequestsStream());
+                    changed = currentTable.setRequestVideo(ipReceivedFromNetwork, requestVideo);
                 }
             }
             this.table = currentTable.table;
