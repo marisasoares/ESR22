@@ -18,11 +18,6 @@ public class RoutingTable implements Serializable{
         this.table = table;
     }
 
-    public void addRow(InetAddress address, InetAddress nextHop, int hopNumber){
-        RoutingTableRow row = new RoutingTableRow(address,nextHop,hopNumber);
-        table.add(row);
-    }
-
     public void addRow(RoutingTableRow row){
         table.add(row);
     }
@@ -79,60 +74,47 @@ public class RoutingTable implements Serializable{
         return -1;
     }
 
-    public boolean setRequestVideo(InetAddress address, boolean requestVideo){
+    /* Given an address return the row associated with that adress  */
+    public RoutingTableRow getRow(InetAddress address){
+        RoutingTableRow row = null;
+        if(this.entryExists(address)){
+            row = this.getTable().get(this.getEntryIndex(address));
+        }
+        return row;
+    }
+
+    /* Changes the state of the requestStream for the specific address */
+    public boolean requestStream(InetAddress address, boolean requestStream){
         boolean changed = false;
         RoutingTable currentTable = this.clone();
-        if(currentTable.entryExists(address)){
-            if(currentTable.getTable().get(currentTable.getEntryIndex(address)).requestStream() != requestVideo) {
+        RoutingTableRow row = currentTable.getRow(address);
+        if(row != null){
+            if(row.requestStream() != requestStream) {
+                row.setRequestStream(requestStream);
                 changed = true;
-            }  
-            currentTable.getTable().get(currentTable.getEntryIndex(address)).setRequestStream(requestVideo);
-        } 
+            }
+        }
         this.table = currentTable.getTable();
         return changed;
     }
 
-    public void updateTable(RoutingTable receivedTable, InetAddress originAddress, boolean requestStream, long delay){
+    public boolean updateTable(RoutingTable receivedTable, InetAddress originAddress, boolean requestStream, long delay){
         RoutingTable currentRoutingTable = this.clone();
         boolean changed = false;
         for (RoutingTableRow routingTableRow : receivedTable.getTable()) {
-            if(!currentRoutingTable.entryExists(routingTableRow.getAddress())){
+            RoutingTableRow localRow = currentRoutingTable.getRow(originAddress);
+            if(localRow != null){
+                localRow.setDelay(delay);
+                changed = currentRoutingTable.requestStream(originAddress, requestStream);
+            } else {
                 RoutingTableRow row = new RoutingTableRow(routingTableRow.getAddress(), originAddress, routingTableRow.getHopNumber()+1,routingTableRow.requestStream(),routingTableRow.getDelay());
                 currentRoutingTable.addRow(row);
                 changed = true;
             }
         }
         this.table = currentRoutingTable.getTable();
-        if(changed) this.printTable();
+        return changed;
     }
-
-
-
-    /*
-    public void updateTable(RoutingTable newTable,InetAddress ipReceivedFromNetwork, boolean requestVideo ,long delay) throws SocketException{
-            RoutingTable currentTable = this.clone();
-            boolean changed = false;
-            for (RoutingTableRow routingTableRow : newTable.getTable()) {
-                if(currentTable.entryExists(ipReceivedFromNetwork)){
-                    currentTable.table.get(currentTable.getEntryIndex(ipReceivedFromNetwork)).setDelay(delay);
-                } 
-                if(!currentTable.entryExists(routingTableRow.getNetwork()) && !getAllIPsInterfaces().contains(routingTableRow.getNetwork())){
-                    RoutingTableRow row = new RoutingTableRow(routingTableRow.getNetwork(), ipReceivedFromNetwork, routingTableRow.getHopNumber()+1,routingTableRow.getRequestsStream(),routingTableRow.getDelay());
-                    currentTable.table.add(row);
-                    changed = true;
-                } else if(currentTable.entryExists(routingTableRow.getNetwork())){
-                    changed = currentTable.setRequestVideo(ipReceivedFromNetwork, requestVideo);
-                }
-            }
-            this.table = currentTable.table;
-            System.out.println("Tabela atualizada");
-            // DEBUG -----------------------------------------------------------
-            if(changed){
-                this.printTable();
-            }
-            
-        
-    }*/
 
 
     public RoutingTable clone(){
@@ -141,6 +123,7 @@ public class RoutingTable implements Serializable{
         return rt;
     }
 
+    /* Pretty printing of the table */
     public void printTable() {
         System.out.print("\033[H\033[2J");  
         StringBuilder sb = new StringBuilder();
@@ -161,6 +144,19 @@ public class RoutingTable implements Serializable{
         
         System.out.println(sb.toString());
         System.out.flush(); 
+    }
+
+    public boolean equivalentTables(RoutingTable t1){
+        boolean equivalentTables = false;
+        for (RoutingTableRow routingTableRow : this.getTable()) {
+            RoutingTableRow localRow = t1.getRow(routingTableRow.getAddress());
+            if(localRow != null){
+                if(localRow.requestStream() == routingTableRow.requestStream() && localRow.getDelay() != -1 && routingTableRow.getDelay() != -1){
+                    equivalentTables = true;
+                }
+            }
+        }
+        return equivalentTables;
     }
 
 

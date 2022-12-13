@@ -19,38 +19,21 @@ public class NetworkMonitorListener implements Runnable {
                 DatagramPacket packet = new DatagramPacket(buffer, BUFFER_SIZE);
                 socket.receive(packet);
                 long timeWhenReceived = System.currentTimeMillis();
-                Thread t = new Thread(new UpdateAndSendTable(socket,packet,timeWhenReceived));
-                t.start();
-            }
-
-        } catch (SocketException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private class UpdateAndSendTable implements Runnable {
-
-        DatagramSocket socket;
-        DatagramPacket packet;
-        long timeWhenReceived;
-
-        public UpdateAndSendTable(DatagramSocket socket, DatagramPacket packet,long timeWhenReceived) {
-            this.socket = socket;
-            this.packet = packet;
-            this.timeWhenReceived = timeWhenReceived;
-        }
-
-        @Override
-        public void run() {
-            StatPacket statPacket;
+                StatPacket statPacket;
             try {
                 statPacket = StatPacket.fromBytes(packet.getData());
-                long delay = this.timeWhenReceived - statPacket.getTimestamp();
-                NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress(),statPacket.requestStream(), delay);
+                long delay = timeWhenReceived - statPacket.getTimestamp();
+                boolean localTableChanged = NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress(),statPacket.requestStream(), delay);
+                if(localTableChanged){
+                    NetworkMonitor.routingTable.printTable();
+                    System.out.println("Time: " + System.currentTimeMillis());
+                }
                 boolean readyToSend = statPacket.updatePacket(NetworkMonitor.routingTable);
-                if(readyToSend){
+
+                /* Check if received table is diferent than local table */
+                RoutingTable localTable = NetworkMonitor.routingTable.clone();
+                localTable.removeRow(packet.getAddress());
+                if(readyToSend &&  !localTable.equivalentTables(statPacket.getTable())){
                     for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
                         NetworkMonitor.sendTable(socket, row.getAddress(), NetworkMonitor.routingTable);
                     }
@@ -58,6 +41,12 @@ public class NetworkMonitorListener implements Runnable {
             } catch (ClassNotFoundException | IOException e) {
                 e.printStackTrace();
             }
+            }
+
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

@@ -19,8 +19,15 @@ public class NetworkMonitor implements Runnable {
 
     public NetworkMonitor(List<InetAddress> neighbours) throws UnknownHostException{
         for (InetAddress neighbour : neighbours) {
-            routingTable.addRow(neighbour, neighbour, 1);
+            RoutingTableRow row;
+            if(ONode.isClient){
+                row = new RoutingTableRow(neighbour, neighbour, 1,true, (long) -1);
+            } else {
+                row = new RoutingTableRow(neighbour, neighbour, 1,false,(long)-1);
+            }
+            routingTable.addRow(row);
         }
+        NetworkMonitor.routingTable.printTable();
     }
 
     @Override
