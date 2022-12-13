@@ -1,50 +1,63 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
-
-
 
 public class NetworkMonitorListener implements Runnable {
 
-    public static int NETWORK_MONITOR_PORT = 6060;
+    /* The buffer size for receiving Datagram packets */
     public static int BUFFER_SIZE = 150000;
+
+    /* The buffer array */
     public byte[] buffer = new byte[BUFFER_SIZE];
 
     @Override
     public void run() {
-        System.out.println("[NETWORK MONITOR] Serving on port: " + NetworkMonitor.NETWORK_MONITOR_PORT);
-        try (DatagramSocket socket = new DatagramSocket(NETWORK_MONITOR_PORT)) {
+        System.out.println("[NETWORK MONITOR] Listening on port: " + NetworkMonitor.NETWORK_MONITOR_PORT);
+        try (DatagramSocket socket = new DatagramSocket(NetworkMonitor.NETWORK_MONITOR_PORT)) {
             while (true) {
                 DatagramPacket packet = new DatagramPacket(buffer, BUFFER_SIZE);
                 socket.receive(packet);
-                InetAddress originNetworkAddress = IPUtils.computeNetworkAddress(packet.getAddress(), InetAddress.getByName("255.255.255.0"));
-                StatPacket statPacket = StatPacket.fromBytes(packet.getData());
-                long delay = System.currentTimeMillis() - statPacket.getTimestamp();
-                NetworkMonitor.routingTable.updateTable(statPacket.getTable(), originNetworkAddress,statPacket.getRequestVideo(), delay);
-                boolean readyToSend = statPacket.updatePacket(NetworkMonitor.routingTable);
-                for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
-                    if(readyToSend){
-                        //Enviar tabela sem a linha do endereço destino
-                        RoutingTable table = NetworkMonitor.routingTable.clone();
-                        table.removeRow(row.getNetwork());
-                        statPacket.setTable(table);
-                        packet.setData(statPacket.convertToBytes());  
-                        packet.setLength(statPacket.convertToBytes().length);
-                        packet.setAddress(row.getNetwork());
-                        socket.send(packet);
-                    }           
-                } 
-            }   
-        
+                long timeWhenReceived = System.currentTimeMillis();
+                Thread t = new Thread(new UpdateAndSendTable(socket,packet,timeWhenReceived));
+                t.start();
+            }
+
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
         }
-        
+    }
+
+    private class UpdateAndSendTable implements Runnable {
+
+        DatagramSocket socket;
+        DatagramPacket packet;
+        long timeWhenReceived;
+
+        public UpdateAndSendTable(DatagramSocket socket, DatagramPacket packet,long timeWhenReceived) {
+            this.socket = socket;
+            this.packet = packet;
+            this.timeWhenReceived = timeWhenReceived;
+        }
+
+        @Override
+        public void run() {
+            StatPacket statPacket;
+            try {
+                statPacket = StatPacket.fromBytes(packet.getData());
+                long delay = this.timeWhenReceived - statPacket.getTimestamp();
+                NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress(),statPacket.requestStream(), delay);
+                boolean readyToSend = statPacket.updatePacket(NetworkMonitor.routingTable);
+                if(readyToSend){
+                    for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
+                        NetworkMonitor.sendTable(socket, row.getAddress(), NetworkMonitor.routingTable);
+                    }
+                }
+            } catch (ClassNotFoundException | IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

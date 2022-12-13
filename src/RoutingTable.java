@@ -1,9 +1,6 @@
 import java.io.Serializable;
 import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 
@@ -21,8 +18,8 @@ public class RoutingTable implements Serializable{
         this.table = table;
     }
 
-    public void addRow(InetAddress network, InetAddress nextHop, int hopNumber){
-        RoutingTableRow row = new RoutingTableRow(network,nextHop,hopNumber);
+    public void addRow(InetAddress address, InetAddress nextHop, int hopNumber){
+        RoutingTableRow row = new RoutingTableRow(address,nextHop,hopNumber);
         table.add(row);
     }
 
@@ -31,29 +28,29 @@ public class RoutingTable implements Serializable{
     }
 
 
-    public void removeRow(InetAddress network){
+    public void removeRow(InetAddress address){
         Iterator<RoutingTableRow> it = table.iterator();
         while (it.hasNext()) {
-            if(it.next().getNetwork().equals(network)){
+            if(it.next().getAddress().equals(address)){
                 it.remove();
             }
         }
     }
 
-    public InetAddress getNextHop(InetAddress network){
+    public InetAddress getNextHop(InetAddress address){
         InetAddress nextHop = null;
         for (RoutingTableRow routingTableRow : table) {
-            if(routingTableRow.getNetwork().equals(network)){
+            if(routingTableRow.getAddress().equals(address)){
                 nextHop = routingTableRow.getNextHop();
             }
         }
         return nextHop;
     }
 
-    public int getHopNumber(InetAddress network){
+    public int getHopNumber(InetAddress address){
         int hopNumber = -1;
         for (RoutingTableRow routingTableRow : table) {
-            if(routingTableRow.getNetwork().equals(network)){
+            if(routingTableRow.getAddress().equals(address)){
                 hopNumber = routingTableRow.getHopNumber();
             }
         }
@@ -65,36 +62,53 @@ public class RoutingTable implements Serializable{
         return this.table;
     }
 
-    public boolean entryExists(InetAddress network){
+    public boolean entryExists(InetAddress address){
         boolean contains = false;
         for (RoutingTableRow routingTableRow : this.table) {
-            if(routingTableRow.getNetwork().equals(network)) contains = true;
+            if(routingTableRow.getAddress().equals(address)) contains = true;
         }
         return contains;
     }
 
-    public int getEntryIndex(InetAddress network){
+    public int getEntryIndex(InetAddress address){
         int index = 0;
         for (RoutingTableRow routingTableRow : this.table) {
-            if(routingTableRow.getNetwork().equals(network)) return index;
+            if(routingTableRow.getAddress().equals(address)) return index;
             index++;
         }
         return -1;
     }
 
-    public boolean setRequestVideo(InetAddress network, boolean requestVideo){
+    public boolean setRequestVideo(InetAddress address, boolean requestVideo){
         boolean changed = false;
         RoutingTable currentTable = this.clone();
-        if(currentTable.entryExists(network)){
-            if(currentTable.table.get(currentTable.getEntryIndex(network)).getRequestsStream() != requestVideo) {
+        if(currentTable.entryExists(address)){
+            if(currentTable.getTable().get(currentTable.getEntryIndex(address)).requestStream() != requestVideo) {
                 changed = true;
             }  
-            currentTable.table.get(currentTable.getEntryIndex(network)).setRequestStream(requestVideo);
+            currentTable.getTable().get(currentTable.getEntryIndex(address)).setRequestStream(requestVideo);
         } 
-        this.table = currentTable.table;
+        this.table = currentTable.getTable();
         return changed;
     }
 
+    public void updateTable(RoutingTable receivedTable, InetAddress originAddress, boolean requestStream, long delay){
+        RoutingTable currentRoutingTable = this.clone();
+        boolean changed = false;
+        for (RoutingTableRow routingTableRow : receivedTable.getTable()) {
+            if(!currentRoutingTable.entryExists(routingTableRow.getAddress())){
+                RoutingTableRow row = new RoutingTableRow(routingTableRow.getAddress(), originAddress, routingTableRow.getHopNumber()+1,routingTableRow.requestStream(),routingTableRow.getDelay());
+                currentRoutingTable.addRow(row);
+                changed = true;
+            }
+        }
+        this.table = currentRoutingTable.getTable();
+        if(changed) this.printTable();
+    }
+
+
+
+    /*
     public void updateTable(RoutingTable newTable,InetAddress ipReceivedFromNetwork, boolean requestVideo ,long delay) throws SocketException{
             RoutingTable currentTable = this.clone();
             boolean changed = false;
@@ -111,13 +125,14 @@ public class RoutingTable implements Serializable{
                 }
             }
             this.table = currentTable.table;
+            System.out.println("Tabela atualizada");
             // DEBUG -----------------------------------------------------------
             if(changed){
                 this.printTable();
             }
             
         
-    }
+    }*/
 
 
     public RoutingTable clone(){
@@ -131,15 +146,15 @@ public class RoutingTable implements Serializable{
         StringBuilder sb = new StringBuilder();
         sb.append("ROUTING TABLE\n");
         sb.append("┌──────────────────┬──────────────────┬────────────┬────────────┬────────────┐\n");
-        sb.append("│      Network     │     Next Hop     │ Hop Number │  Requests  │  Delay ms  │\n");
+        sb.append("│      Address     │     Next Hop     │ Hop Number │  Requests  │  Delay ms  │\n");
         Iterator <RoutingTableRow> it = table.iterator();
         while (it.hasNext()) {
             RoutingTableRow row = it.next();
             sb.append("├──────────────────┼──────────────────┼────────────┼────────────┼────────────┤\n");
-            sb.append("│ " + String.format("%-16s", row.getNetwork()) + " ");
+            sb.append("│ " + String.format("%-16s", row.getAddress()) + " ");
             sb.append("│ " + String .format("%-16s", row.getNextHop()) + " ");
             sb.append("│ " + String.format("%-10s", row.getHopNumber()) + " ");
-            sb.append("│ " + String.format("%-10s", row.getRequestsStream()) + " ");
+            sb.append("│ " + String.format("%-10s", row.requestStream()) + " ");
             sb.append("│ " + String.format("%-10s", row.getDelay()) + " │\n");
         }   
             sb.append("└──────────────────┴──────────────────┴────────────┴────────────┴────────────┘\n");
@@ -155,18 +170,4 @@ public class RoutingTable implements Serializable{
             " table='" + getTable() + "'" +
             "}";
     }
-
-    private List<InetAddress> getAllIPsInterfaces() throws SocketException{
-        List<InetAddress> addrList = new ArrayList<InetAddress>();
-        for(Enumeration<NetworkInterface> eni = NetworkInterface.getNetworkInterfaces(); eni.hasMoreElements(); ) {
-            final NetworkInterface ifc = eni.nextElement();
-            if(ifc.isUp()) {
-                for(Enumeration<InetAddress> ena = ifc.getInetAddresses(); ena.hasMoreElements(); ) {
-                    addrList.add(ena.nextElement());
-                }
-            }
-        }
-        return addrList;
-    }
-
 }

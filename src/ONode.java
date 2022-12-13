@@ -8,16 +8,15 @@ import javax.swing.JLabel;
 import javax.swing.Timer;
 import java.awt.*;
 
-// Server class
 public class ONode extends JFrame implements ActionListener {
-    // GUI:
-    // ----------------
+    
+    /* GUI */
     JLabel label;
 
     // RTP variables:
     // ----------------
     DatagramPacket senddp; // UDP packet containing the video frames (to send)A
-    DatagramSocket RTPsocket; // socket to be used to send and receive UDP packet
+    DatagramSocket socket; // socket to be used to send and receive UDP packet
     public static int RTP_dest_port = 25000; // destination port for RTP packets
     InetAddress ClientIPAddr; // Client IP address
 
@@ -33,10 +32,15 @@ public class ONode extends JFrame implements ActionListener {
 
     Timer sTimer; // timer used to send the images at the video frame rate
     byte[] sBuf; // buffer used to store the images to send to the client
+    static int BUFFER_SIZE = 15000; //Buffer size
 
-    public static List<InetAddress> vizinhos = new ArrayList<>();
+    /* The list of neighbours read from the command line */
+    public static List<InetAddress> neighbours = new ArrayList<>();
 
+    /* Tells if the current ONode acts as a stream server */
     public static boolean isContentProvider = false;
+
+    /* Tells if the current ONode acts as client */
     public static boolean isClient = false;
 
     public ONode() {
@@ -44,15 +48,13 @@ public class ONode extends JFrame implements ActionListener {
         super("Servidor");
 
         // init para a parte do servidor
-        sTimer = new Timer(FRAME_PERIOD, this); // init Timer para servidor
-        sTimer.setInitialDelay(0);
+        sTimer = new Timer(FRAME_PERIOD, this); 
         sTimer.setCoalesce(true);
-        sBuf = new byte[15000]; // allocate memory for the sending buffer
+        sBuf = new byte[BUFFER_SIZE];
 
         try {
-            RTPsocket = new DatagramSocket(); // init RTP socket
-            // DatagramSocket onodeSocket = new DatagramSocket(ONODE_PORT);
-            video = new VideoStream(VideoFileName); // init the VideoStream object:
+            socket = new DatagramSocket(); 
+            video = new VideoStream(VideoFileName);
             System.out.println("[RTP SERVER]: File to send: " + VideoFileName);
         } catch (SocketException e) {
             System.out.println("[RTP SERVER]: Socket error: " + e.getMessage());
@@ -72,7 +74,7 @@ public class ONode extends JFrame implements ActionListener {
         });
 
         // GUI:
-        label = new JLabel("Send frame #        ", JLabel.CENTER);
+        label = new JLabel("Send frame #            ", JLabel.CENTER);
         getContentPane().add(label, BorderLayout.CENTER);
 
         sTimer.start();
@@ -82,14 +84,17 @@ public class ONode extends JFrame implements ActionListener {
 
     public static void main(String[] args) throws IOException {
         parseArguments(args);
+
+        /* Start monitoring the network and exchanging routing tables */
         Thread networkMonitorListener = new Thread(new NetworkMonitorListener());
         networkMonitorListener.start();   
-        Thread networkMonitor = new Thread(new NetworkMonitor(vizinhos));
+        Thread networkMonitor = new Thread(new NetworkMonitor(neighbours));
         networkMonitor.start(); 
-        byte[] buf = new byte[15000];
+
+        byte[] buf = new byte[BUFFER_SIZE];
         DatagramSocket socket = new DatagramSocket(RTP_dest_port);
         if(ONode.isClient){
-            Thread client = new Thread(new Client(vizinhos,socket));
+            Thread client = new Thread(new Client(neighbours,socket));
             client.start();
         }
         if (isContentProvider) {
@@ -99,11 +104,10 @@ public class ONode extends JFrame implements ActionListener {
         } else {
             try {
                 while (true) {
-                    DatagramPacket packet = new DatagramPacket(buf, 15000);
+                    DatagramPacket packet = new DatagramPacket(buf, buf.length);
                     socket.receive(packet);
-                    Thread t = new Thread(new VideoForwarder(vizinhos,socket,packet));
+                    Thread t = new Thread(new VideoForwarder(neighbours,socket,packet));
                     t.start();
-                    
                 }
             } catch (SocketException e) {
                 e.printStackTrace();
@@ -138,7 +142,7 @@ public class ONode extends JFrame implements ActionListener {
                 
                 senddp = new DatagramPacket(packet_bits, packet_length, InetAddress.getByName("127.0.0.1") , RTP_dest_port);
              
-                Thread videoForwarder = new Thread(new VideoForwarder(vizinhos, RTPsocket, senddp));
+                Thread videoForwarder = new Thread(new VideoForwarder(neighbours, socket, senddp));
                 videoForwarder.start();
                 
                 // print the header bitstream
@@ -151,12 +155,15 @@ public class ONode extends JFrame implements ActionListener {
                 System.exit(0);
             }
         } else {
-            // if we have reached the end of the video file, stop the timer
             sTimer.stop();
-//imagenb = 1;
         }
     }
 
+    /**
+     * Parse the command line arguments 
+     * @param args The arguments read
+     * @throws IOException
+     */
     public static void parseArguments(String[] args) throws IOException {
         if (args.length == 0) {
             System.out.println("Syntax : ONode [-c] [-f file] [neighbour ipaddresses]");
@@ -187,15 +194,15 @@ public class ONode extends JFrame implements ActionListener {
                 if(args[i].equals("-c")){
                     ONode.isClient = true;
                 } else {
-                   vizinhos.add(InetAddress.getByName(args[i])); 
+                   neighbours.add(InetAddress.getByName(args[i])); 
                 }
             }
         }
 
-        System.out.println("Número de vizinhos: " + vizinhos.size());
+        System.out.println("Number of neighbours: " + neighbours.size());
         int index = 1;
-        for (InetAddress vizinho : vizinhos) {
-            System.out.println(index + "º vizinho: " + vizinho);
+        for (InetAddress neighbour  : neighbours) {
+            System.out.println(index + "º: " + neighbour);
             index++;
         }
     }

@@ -9,8 +9,7 @@ import java.util.List;
 // Client class
 public class Client implements Runnable{
 
-  // GUI
-  // ----
+  /* GUI */
   JFrame f = new JFrame("Cliente oNode");
   // JButton setupButton = new JButton("Setup");
   JButton playButton = new JButton("Play");
@@ -24,7 +23,7 @@ public class Client implements Runnable{
   // RTP variables:
   // ----------------
   DatagramPacket rcvdp; // UDP packet received from the server (to receive)
-  DatagramSocket RTPsocket; // socket to be used to send and receive UDP packet
+  DatagramSocket socket; // socket to be used to send and receive UDP packet
   static int RTP_RCV_PORT = 25000; // port where the client will receive the RTP packets
   static int BUFFER_SIZE = 15000;
 
@@ -34,25 +33,22 @@ public class Client implements Runnable{
   /*
    * Construtor do cliente
    */
-  public Client(List<InetAddress> vizinhos, DatagramSocket socket) throws IOException {
+  public Client(List<InetAddress> neighbours, DatagramSocket socket) throws IOException {
     createAndShowGUI();
-    // Inicialização das variáveis
     cTimer = new Timer(20, new clientTimerListener());
     cTimer.setInitialDelay(0);
     cTimer.setCoalesce(true);
-    cBuf = new byte[BUFFER_SIZE]; // allocate enough memory for the buffer used to receive data from the server
+    cBuf = new byte[BUFFER_SIZE];
     try {
-      // socket e video
-      RTPsocket = socket; // init RTP socket (o mesmo para o cliente e servidor)
-      for (InetAddress vizinho : vizinhos) {
+      this.socket = socket;
+      for (InetAddress neighbour : neighbours) {
           StatPacket statPacket = new StatPacket(true);
           DatagramPacket packet = new DatagramPacket(statPacket.convertToBytes(), statPacket.convertToBytes().length);
-          packet.setAddress(vizinho);
+          packet.setAddress(neighbour);
           packet.setPort(NetworkMonitor.NETWORK_MONITOR_PORT);
-          RTPsocket.send(packet);
-          System.out.println("Enviado request video!");
+          socket.send(packet);
       }
-      RTPsocket.setSoTimeout(5000); // setimeout to 5s
+      socket.setSoTimeout(5000); // setimeout to 5s
     } catch (SocketException e) {
       System.out.println("[ERROR] Can't connect to server");
     }
@@ -78,7 +74,7 @@ public class Client implements Runnable{
   class tearButtonListener implements ActionListener {
     public void actionPerformed(ActionEvent e) {
 
-      System.out.println("Teardown Button pressed");
+      System.out.println("Close Button pressed");
       // stop the timer
       cTimer.stop();
       // exit
@@ -98,7 +94,7 @@ public class Client implements Runnable{
 
       try {
         // receive the DP from the socket:
-        RTPsocket.receive(rcvdp);
+        socket.receive(rcvdp);
 
         // create an RTPpacket object from the DP
         RTPpacket rtp_packet = new RTPpacket(rcvdp.getData(), rcvdp.getLength());

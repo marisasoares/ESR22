@@ -3,24 +3,24 @@ import java.net.InetAddress;
 
 public class RoutingTableRow implements Serializable{
     private InetAddress nextHop;
-    private InetAddress network;
+    private InetAddress address;
     private int hopNumber;
-    private boolean requestsStream;
+    private boolean requestStream;
     private long delay;
 
 
-    public RoutingTableRow(InetAddress network, InetAddress nextHop, int hopNumber) {
+    public RoutingTableRow(InetAddress address, InetAddress nextHop, int hopNumber) {
         this.nextHop = nextHop;
-        this.network = network;
-        this.requestsStream = false;
+        this.address = address;
+        this.requestStream = false;
         this.delay = 0;
         this.hopNumber = hopNumber;
     }
 
-    public RoutingTableRow(InetAddress network, InetAddress nextHop, int hopNumber, boolean requestsStream, Long delay) {
+    public RoutingTableRow(InetAddress address, InetAddress nextHop, int hopNumber, boolean requestStream, Long delay) {
         this.nextHop = nextHop;
-        this.network = network;
-        this.requestsStream = requestsStream;
+        this.address = address;
+        this.requestStream = requestStream;
         this.delay = delay;
         this.hopNumber = hopNumber;
     }
@@ -33,12 +33,12 @@ public class RoutingTableRow implements Serializable{
         this.nextHop = nextHop;
     }
 
-    public InetAddress getNetwork() {
-        return this.network;
+    public InetAddress getAddress() {
+        return this.address;
     }
 
-    public void setNetwork(InetAddress network) {
-        this.network = network;
+    public void setAddress(InetAddress address) {
+        this.address = address;
     }
 
     public int getHopNumber() {
@@ -49,12 +49,12 @@ public class RoutingTableRow implements Serializable{
         this.hopNumber = hopNumber;
     }
 
-    public boolean getRequestsStream() {
-        return this.requestsStream;
+    public boolean requestStream() {
+        return this.requestStream;
     }
 
-    public void setRequestStream(boolean requestsStream) {
-        this.requestsStream = requestsStream;
+    public void setRequestStream(boolean requestStream) {
+        this.requestStream = requestStream;
     }
 
     public long getDelay() {
@@ -70,9 +70,9 @@ public class RoutingTableRow implements Serializable{
     public String toString() {
         return "{" +
             " nextHop='" + getNextHop() + "'" +
-            ", network='" + getNetwork() + "'" +
+            ", address='" + getAddress() + "'" +
             ", hopNumber='" + getHopNumber() + "'" +
-            ", requestsStream='" + getRequestsStream() + "'" +
+            ", requestStream='" + requestStream() + "'" +
             ", delay='" + getDelay() + "'" +
             "}";
     }

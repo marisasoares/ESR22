@@ -8,43 +8,53 @@ import java.util.List;
 
 public class NetworkMonitor implements Runnable {
 
+    /* Port used to send statistics and network monitor packets */
     public static int NETWORK_MONITOR_PORT = 6060;
-    public static int BUFFER_SIZE = 150000;
-    public byte[] buffer = new byte[BUFFER_SIZE];
+
+    /* The current routing table */
     public static RoutingTable routingTable = new RoutingTable();
+
+    /* Tells if the current ONode is receiving the stream at RDP Port */
     public static boolean receivingStream = false;
 
-    public NetworkMonitor(List<InetAddress> vizinhos) throws UnknownHostException{
-        InetAddress mask = InetAddress.getByName("255.255.255.0");
-        for (InetAddress vizinho : vizinhos) {
-            routingTable.addRow(IPUtils.computeNetworkAddress(vizinho, mask), vizinho, 1);
+    public NetworkMonitor(List<InetAddress> neighbours) throws UnknownHostException{
+        for (InetAddress neighbour : neighbours) {
+            routingTable.addRow(neighbour, neighbour, 1);
         }
     }
 
     @Override
     public void run() { 
-        System.out.println("[NETWORK MONITOR] Listening on port: " + NetworkMonitorListener.NETWORK_MONITOR_PORT);
+        System.out.println("[NETWORK MONITOR] Serving on port: " + NetworkMonitor.NETWORK_MONITOR_PORT);
 
         try (DatagramSocket socket = new DatagramSocket()) {
-            while (true) {
-                for (RoutingTableRow row : routingTable.getTable()) {
-                    RoutingTable tableToSend = routingTable.clone();
-                    tableToSend.removeRow(row.getNetwork());
-                    StatPacket statPacket = new StatPacket(tableToSend);
-                    DatagramPacket packet = new DatagramPacket(buffer, statPacket.convertToBytes().length);
-                    packet.setAddress(row.getNetwork());
-                    packet.setPort(NETWORK_MONITOR_PORT);
-                    packet.setData(statPacket.convertToBytes());
-                    socket.send(packet);
-                }
+            // Send the current table to all neighbours
+            for (RoutingTableRow row : routingTable.getTable()) {
+                sendTable(socket, row.getAddress(), routingTable);
             }
-            
-        
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
         
-    }    
+    }
+
+    /**
+     * Send a routing table to a specific destination address
+     * @param socket DatagramSocket from where the packet will be sent 
+     * @param destinationAddress The destination InetAddress
+     * @param table The table to send
+     * @throws IOException
+     */
+    public static void sendTable(DatagramSocket socket, InetAddress destinationAddress, RoutingTable table) throws IOException{
+        RoutingTable tableToSend = table.clone();
+        tableToSend.removeRow(destinationAddress);
+        StatPacket statPacket = new StatPacket(tableToSend);
+        DatagramPacket packet = new DatagramPacket(statPacket.convertToBytes(), statPacket.convertToBytes().length);
+        packet.setAddress(destinationAddress);
+        packet.setPort(NETWORK_MONITOR_PORT);
+        socket.send(packet);
+
+    }
 }
