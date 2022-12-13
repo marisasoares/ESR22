@@ -101,12 +101,17 @@ public class RoutingTable implements Serializable{
     public boolean updateTable(RoutingTable receivedTable, InetAddress originAddress, boolean requestStream, long delay){
         RoutingTable currentRoutingTable = this.clone();
         boolean changed = false;
+        RoutingTableRow localRow = currentRoutingTable.getRow(originAddress);
+        if(localRow != null){
+            localRow.setDelay(delay);
+            changed = currentRoutingTable.requestStream(originAddress, requestStream);
+        } 
         for (RoutingTableRow routingTableRow : receivedTable.getTable()) {
-            RoutingTableRow localRow = currentRoutingTable.getRow(originAddress);
-            if(localRow != null){
-                localRow.setDelay(delay);
-                changed = currentRoutingTable.requestStream(originAddress, requestStream);
-            } else {
+            localRow = currentRoutingTable.getRow(routingTableRow.getAddress());
+            if(localRow != null) {
+                localRow.setRequestStream(requestStream);
+                localRow.setDelay(localRow.getDelay() + delay);
+            } else{
                 RoutingTableRow row = new RoutingTableRow(routingTableRow.getAddress(), originAddress, routingTableRow.getHopNumber()+1,routingTableRow.requestStream(),routingTableRow.getDelay());
                 currentRoutingTable.addRow(row);
                 changed = true;
@@ -125,7 +130,6 @@ public class RoutingTable implements Serializable{
 
     /* Pretty printing of the table */
     public void printTable() {
-        System.out.print("\033[H\033[2J");  
         StringBuilder sb = new StringBuilder();
         sb.append("ROUTING TABLE\n");
         sb.append("┌──────────────────┬──────────────────┬────────────┬────────────┬────────────┐\n");
@@ -147,13 +151,17 @@ public class RoutingTable implements Serializable{
     }
 
     public boolean equivalentTables(RoutingTable t1){
-        boolean equivalentTables = false;
+        boolean equivalentTables = true;
         for (RoutingTableRow routingTableRow : this.getTable()) {
             RoutingTableRow localRow = t1.getRow(routingTableRow.getAddress());
             if(localRow != null){
-                if(localRow.requestStream() == routingTableRow.requestStream() && localRow.getDelay() != -1 && routingTableRow.getDelay() != -1){
-                    equivalentTables = true;
+                if(localRow.requestStream() != routingTableRow.requestStream()){
+                    equivalentTables = false;
+                    break;
                 }
+            } else{
+                equivalentTables = false;
+                break;
             }
         }
         return equivalentTables;
@@ -167,3 +175,4 @@ public class RoutingTable implements Serializable{
             "}";
     }
 }
+

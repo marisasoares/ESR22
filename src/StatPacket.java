@@ -11,25 +11,29 @@ public class StatPacket implements Serializable{
     private long timestamp;
     /* Number of jumps that the packet can take at maximum */
     private int timeToLive;
+     /* Tells if the sender ONode request the video stream */
+    private boolean requestStream;
+    /* Tells if we want a routing table */
+    private boolean isRequest;
     /* The routing table to send */
     private RoutingTable table;
-    /* Tells if the sender ONode request the video stream */
-    private boolean requestStream;
 
     /* Init all fields and sets routing table */
     public StatPacket(RoutingTable table){
         this.timeToLive = 60;
         this.table = table;        
+        this.isRequest = false;
         this.timestamp = System.currentTimeMillis();
         this.requestStream = false;
     }
 
     /* Used to request a stream */
-    public StatPacket(Boolean requestStream){
+    public StatPacket(Boolean isRequest, Boolean requestStream){
         this.timeToLive = 60;
-        this.table = new RoutingTable();        
+        this.table = null;
+        this.isRequest = isRequest;        
         this.timestamp = System.currentTimeMillis();
-        this.requestStream = true;
+        this.requestStream = requestStream;
     }
 
     /* Getters and Setters */
@@ -64,12 +68,22 @@ public class StatPacket implements Serializable{
     public void setTable(RoutingTable table) {
         this.table = table;
     }
+
+    public boolean isRequest(){
+        return this.isRequest;
+    }
+
+    public void isRequest(boolean isRequest){
+        this.isRequest = isRequest;
+    }
     
     /* Usually run after receiving a packet, updates the ttl, timestamp and table */
-    public boolean updatePacket(RoutingTable table){
+    public boolean updatePacket(RoutingTable table,boolean isRequest,boolean requestStream){
         boolean readyToSend = true;
         timeToLive -= 1;
         this.table = table;
+        this.isRequest = isRequest;
+        this.requestStream = requestStream;
         if(timeToLive <= 0) readyToSend = false;
         timestamp = System.currentTimeMillis();
         return readyToSend;
@@ -81,6 +95,7 @@ public class StatPacket implements Serializable{
         return "{" +
             " timestamp='" + getTimestamp() + "'" +
             ", timeToLive='" + getTimeToLive() + "'" +
+            ", isRequest='" + isRequest() + "'" +
             ", table='" + getTable() + "'" +
             ", requestStream='" + requestStream() + "'" +
             "}";

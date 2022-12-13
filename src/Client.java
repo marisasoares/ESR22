@@ -4,7 +4,6 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.Timer;
-import java.util.List;
 
 // Client class
 public class Client implements Runnable{
@@ -33,7 +32,7 @@ public class Client implements Runnable{
   /*
    * Construtor do cliente
    */
-  public Client(List<InetAddress> neighbours, DatagramSocket socket) throws IOException {
+  public Client(DatagramSocket socket) throws IOException {
     createAndShowGUI();
     cTimer = new Timer(20, new clientTimerListener());
     cTimer.setInitialDelay(0);
@@ -41,13 +40,6 @@ public class Client implements Runnable{
     cBuf = new byte[BUFFER_SIZE];
     try {
       this.socket = socket;
-      for (InetAddress neighbour : neighbours) {
-          StatPacket statPacket = new StatPacket(true);
-          DatagramPacket packet = new DatagramPacket(statPacket.convertToBytes(), statPacket.convertToBytes().length);
-          packet.setAddress(neighbour);
-          packet.setPort(NetworkMonitor.NETWORK_MONITOR_PORT);
-          socket.send(packet);
-      }
       socket.setSoTimeout(5000); // setimeout to 5s
     } catch (SocketException e) {
       System.out.println("[ERROR] Can't connect to server");
