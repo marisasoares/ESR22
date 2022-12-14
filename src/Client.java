@@ -42,7 +42,7 @@ public class Client implements Runnable{
     try {
       this.socket = socket;
       socket.setSoTimeout(5000); // setimeout to 5s
-    } catch (SocketException e) {
+    } catch (Exception e) {
       System.out.println("[ERROR] Can't connect to server");
     }
   }

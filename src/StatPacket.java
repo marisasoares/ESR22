@@ -8,7 +8,8 @@ import java.io.Serializable;
 public class StatPacket implements Serializable{
 
     public enum Type {TABLEREQUEST,TABLERESPONSE,PING,PONG};
-
+    /* Sequence number associated with the packet, used in ping pong packets */
+    private int sequenceNumber;
     /* System time in milisseconds when this packet was created */
     private long timestamp;
     /* Number of jumps that the packet can take at maximum */
@@ -47,7 +48,8 @@ public class StatPacket implements Serializable{
     }
 
     /* Used to make ping pong */
-    public StatPacket(Type type){
+    public StatPacket(Type type,int sequenceNumber){
+        this.sequenceNumber = sequenceNumber;
         this.timeToLive = 60;
         this.type = type;    
         this.table = null;
@@ -94,6 +96,14 @@ public class StatPacket implements Serializable{
     public void requestStream(boolean requestStream){
         this.requestStream = requestStream;
     }
+
+    public int getSequenceNumber(){
+        return this.sequenceNumber;
+    }
+
+    public void setSequenceNumber(int sequenceNumber){
+        this.sequenceNumber = sequenceNumber;
+    }
     
     /* Usually run after receiving a packet, updates the ttl, timestamp and table */
     public boolean updatePacket(RoutingTable table){
@@ -110,6 +120,7 @@ public class StatPacket implements Serializable{
     public String toString() {
         return "{" +
             " timestamp='" + getTimestamp() + "'" +
+            ", sequenceNumber='" + getSequenceNumber() + "'" +
             ", timeToLive='" + getTimeToLive() + "'" +
             ", table='" + getTable() + "'" +
             ", type='" + getType() + "'" +

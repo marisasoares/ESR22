@@ -6,6 +6,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 public class NetworkMonitor implements Runnable {
@@ -38,9 +39,15 @@ public class NetworkMonitor implements Runnable {
 
         try (DatagramSocket socket = new DatagramSocket()) {
             sendTableToAllNeighbours(socket,StatPacket.Type.TABLEREQUEST);
+            while(true){
+                sendPingToAllNeighbours(socket);
+                Thread.sleep(5000);
+            }
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
@@ -110,5 +117,27 @@ public class NetworkMonitor implements Runnable {
         }
         // Return the list without duplicates
         return returnList.stream().distinct().collect(Collectors.toList());
+    }
+
+    public static void sendPong(DatagramSocket socket, InetAddress destination, StatPacket pingStatPacket) throws IOException{
+        StatPacket statPacket = new StatPacket(StatPacket.Type.PONG, pingStatPacket.getSequenceNumber());
+        DatagramPacket packetToSend = new DatagramPacket(statPacket.convertToBytes(), statPacket.convertToBytes().length);
+        packetToSend.setAddress(destination);
+        packetToSend.setPort(NETWORK_MONITOR_PORT);
+        socket.send(packetToSend);
+    }
+
+    public static void sendPing(DatagramSocket socket, InetAddress destination) throws IOException{
+        StatPacket statPacket = new StatPacket(StatPacket.Type.PING, new Random().nextInt(10000));
+        DatagramPacket packetToSend = new DatagramPacket(statPacket.convertToBytes(), statPacket.convertToBytes().length);
+        packetToSend.setAddress(destination);
+        packetToSend.setPort(NETWORK_MONITOR_PORT);
+        socket.send(packetToSend);
+    }
+
+    public static void sendPingToAllNeighbours(DatagramSocket socket) throws IOException{
+        for (RoutingTableRow row : NetworkMonitor.routingTable.getTable()) {
+            sendPing(socket, row.getAddress());
+        }
     }
 }

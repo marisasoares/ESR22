@@ -20,13 +20,11 @@ public class NetworkMonitorListener implements Runnable {
                 StatPacket statPacket;
                 statPacket = StatPacket.fromBytes(packet.getData());
                 long delay = timeWhenReceived - statPacket.getTimestamp();
+                System.out.print("\033[H\033[2J");  
+                System.out.flush();
                 switch (statPacket.getType()) {
                     case TABLEREQUEST:
-                        System.out.println("Request - Recebida tabela:");
-                        System.out.println(statPacket.getTable());
-                        System.out.println("Request Stream: " + statPacket.requestStream());
                         boolean localTableChanged = NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress(),statPacket.requestStream(), delay);
-                        System.out.println("Tabela atual:");
                         NetworkMonitor.routingTable.printTable();
                         if(localTableChanged){
                             System.out.println("Nada mudado");
@@ -36,20 +34,22 @@ public class NetworkMonitorListener implements Runnable {
                         NetworkMonitor.sendTableToAllNeighbours(socket);
                         break;
                     case TABLERESPONSE:
-                        System.out.println("Response - Recebida tabela:");
-                        System.out.println(statPacket.getTable());
                         localTableChanged = NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress(),statPacket.requestStream(), delay);
-                        System.out.println("Tabela atual:");
                         NetworkMonitor.routingTable.printTable();
                         if(localTableChanged){
                             System.out.println("Nada mudado");
                         }
                         break;
                     case PING:
-                        
+                        NetworkMonitor.sendPong(socket, packet.getAddress(), statPacket);        
+                        NetworkMonitor.routingTable.getRow(packet.getAddress()).setDelay(delay);
+                        NetworkMonitor.routingTable.printTable();
+           
                         break;
                     case PONG:
-                        
+                        NetworkMonitor.routingTable.getRow(packet.getAddress()).setDelay(delay);     
+                        NetworkMonitor.routingTable.printTable();
+      
                         break;
                     default:
                         break;
