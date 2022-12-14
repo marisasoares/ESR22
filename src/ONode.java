@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.awt.event.*;
 import javax.swing.JFrame;
@@ -33,10 +34,8 @@ public class ONode extends JFrame implements ActionListener {
     byte[] sBuf; // buffer used to store the images to send to the client
     static int BUFFER_SIZE = 15000; //Buffer size
 
-    public static InetAddress bootstrap;
-
-    public static List<InetAddress> neighbours;
-
+    /* The list of neighbours read from the command line */
+    public static List<InetAddress> neighbours = new ArrayList<>();
 
     /* Tells if the current ONode acts as a stream server */
     public static boolean isContentProvider = false;
@@ -85,16 +84,17 @@ public class ONode extends JFrame implements ActionListener {
 
     public static void main(String[] args) throws IOException {
         parseArguments(args);
+
         /* Start monitoring the network and exchanging routing tables */
         Thread networkMonitorListener = new Thread(new NetworkMonitorListener());
         networkMonitorListener.start();   
-        Thread networkMonitor = new Thread(new NetworkMonitor());
+        Thread networkMonitor = new Thread(new NetworkMonitor(neighbours));
         networkMonitor.start(); 
 
         byte[] buf = new byte[BUFFER_SIZE];
         DatagramSocket socket = new DatagramSocket(RTP_dest_port);
         if(ONode.isClient){
-            Thread client = new Thread(new Client(socket));
+            Thread client = new Thread(new Client(neighbours,socket));
             client.start();
         }
         if (isContentProvider) {
@@ -106,11 +106,10 @@ public class ONode extends JFrame implements ActionListener {
                 while (true) {
                     DatagramPacket packet = new DatagramPacket(buf, buf.length);
                     socket.receive(packet);
-                    Thread t = new Thread(new VideoForwarder(neighbours,socket,packet));
-                    t.start();
+                    VideoForwarder.sendVideoPacketToClients(socket, packet);
                 }
-            } catch (Exception e) {
-                System.out.println("[Error] Connection timeout");
+            } catch (SocketException e) {
+                e.printStackTrace();
             }
 
         }
@@ -142,9 +141,7 @@ public class ONode extends JFrame implements ActionListener {
                 
                 senddp = new DatagramPacket(packet_bits, packet_length, InetAddress.getByName("127.0.0.1") , RTP_dest_port);
              
-                // SEND VIDEOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO TODO
-                //Thread videoForwarder = new Thread(new VideoForwarder(neighbours, socket, senddp));
-                //videoForwarder.start();
+                VideoForwarder.sendVideoPacketToClients(socket, senddp);
                 
                 // print the header bitstream
                 //rtp_packet.printheader();
@@ -156,7 +153,12 @@ public class ONode extends JFrame implements ActionListener {
                 System.exit(0);
             }
         } else {
-            sTimer.stop();
+            imagenb = 0;
+            try {
+                video.returnToBeginning();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
         }
     }
 
@@ -195,9 +197,16 @@ public class ONode extends JFrame implements ActionListener {
                 if(args[i].equals("-c")){
                     ONode.isClient = true;
                 } else {
-                   bootstrap = InetAddress.getByName(args[i]); 
+                   neighbours.add(InetAddress.getByName(args[i])); 
                 }
             }
+        }
+
+        System.out.println("Number of neighbours: " + neighbours.size());
+        int index = 1;
+        for (InetAddress neighbour  : neighbours) {
+            System.out.println(index + "º: " + neighbour);
+            index++;
         }
     }
 }

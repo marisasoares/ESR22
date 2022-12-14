@@ -2,33 +2,19 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 
-public class VideoForwarder implements Runnable{
+public class VideoForwarder{
 
-    /* The list of InetAddresses to forward the video to */
-    public List<InetAddress> sendTo;
-    /* The InetAddress of the ONode from which the video was received */
-    public InetAddress receivedFromIP;
-    /* The Datagram socket used */
-    public DatagramSocket socket;
-    /* The actual packet that was received and must be forwarded to */
-    public DatagramPacket packet;
-
-    /* Constructor */
-    public VideoForwarder(List<InetAddress> sendTo, DatagramSocket socket, DatagramPacket packet){
-        this.sendTo = sendTo;
-        this.socket = socket;
-        this.receivedFromIP = packet.getAddress();
-        this.packet = packet;
-        
-    }
-
-    @Override
-    public void run() {
-        for (InetAddress neighbour : sendTo) {
-            if(!neighbour.equals(receivedFromIP)){
-                packet.setAddress(neighbour);
+    public static void sendVideoPacketToClients(DatagramSocket socket, DatagramPacket packet) throws UnknownHostException{
+        if(!packet.getAddress().equals(InetAddress.getByName("127.0.0.1")))
+            System.out.println("Received Stream from: " + packet.getAddress());
+        List<InetAddress> sendTo = NetworkMonitor.getNeighboursRequestStream(); 
+        for (InetAddress node : sendTo) {
+            if(!node.equals(packet.getAddress())){
+                System.out.println("Sent stream to: " + node);
+                packet.setAddress(node);
                 packet.setPort(ONode.RTP_dest_port);
                 try {
                     socket.send(packet);
@@ -36,7 +22,7 @@ public class VideoForwarder implements Runnable{
                     e.printStackTrace();
                 }
             }    
-        }
+        }      
     }
     
 }

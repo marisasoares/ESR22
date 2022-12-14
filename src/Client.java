@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.Timer;
+import java.util.List;
 
 // Client class
 public class Client implements Runnable{
@@ -32,7 +33,7 @@ public class Client implements Runnable{
   /*
    * Construtor do cliente
    */
-  public Client(DatagramSocket socket) throws IOException {
+  public Client(List<InetAddress> neighbours, DatagramSocket socket) throws IOException {
     createAndShowGUI();
     cTimer = new Timer(20, new clientTimerListener());
     cTimer.setInitialDelay(0);

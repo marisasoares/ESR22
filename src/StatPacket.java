@@ -6,34 +6,52 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 public class StatPacket implements Serializable{
-    
+
+    public enum Type {TABLEREQUEST,TABLERESPONSE,PING,PONG};
+
     /* System time in milisseconds when this packet was created */
     private long timestamp;
     /* Number of jumps that the packet can take at maximum */
     private int timeToLive;
-     /* Tells if the sender ONode request the video stream */
-    private boolean requestStream;
-    /* Tells if we want a routing table */
-    private boolean isRequest;
     /* The routing table to send */
     private RoutingTable table;
+    /* Tells if the current ONode wants to receive the video stream */
+    private boolean requestStream;
+    
+    /* Type of packet 
+     * TABLEREQUEST to ask for table, 
+     * TABLERESPONSE to send updated table without needing response
+     * STREAMREQUEST to request the stream
+     * PING to make a ping request,
+     * PONG to answer ping.
+     */
+    private Type type;
 
     /* Init all fields and sets routing table */
-    public StatPacket(RoutingTable table){
+    public StatPacket(RoutingTable table,Type type, boolean requestStream){
         this.timeToLive = 60;
-        this.table = table;        
-        this.isRequest = false;
+        this.table = table;
+        this.type = type;    
+        this.requestStream = requestStream;
         this.timestamp = System.currentTimeMillis();
-        this.requestStream = false;
+        
     }
 
-    /* Used to request a stream */
-    public StatPacket(Boolean isRequest, Boolean requestStream){
+    public StatPacket(RoutingTable table,Type type){
         this.timeToLive = 60;
-        this.table = null;
-        this.isRequest = isRequest;        
+        this.table = table;
+        this.type = type;    
+        this.requestStream = false;
         this.timestamp = System.currentTimeMillis();
-        this.requestStream = requestStream;
+        
+    }
+
+    /* Used to make ping pong */
+    public StatPacket(Type type){
+        this.timeToLive = 60;
+        this.type = type;    
+        this.table = null;
+        this.timestamp = System.currentTimeMillis();
     }
 
     /* Getters and Setters */
@@ -53,12 +71,12 @@ public class StatPacket implements Serializable{
         this.timeToLive = timeToLive;
     }
 
-    public boolean requestStream() {
-        return this.requestStream;
+    public Type getType() {
+        return this.type;
     }
 
-    public void setRequestStream(boolean requestStream) {
-        this.requestStream = requestStream;
+    public void setType(Type type) {
+        this.type = type;
     }
 
     public RoutingTable getTable() {
@@ -69,21 +87,19 @@ public class StatPacket implements Serializable{
         this.table = table;
     }
 
-    public boolean isRequest(){
-        return this.isRequest;
+    public boolean requestStream(){
+        return this.requestStream;
     }
 
-    public void isRequest(boolean isRequest){
-        this.isRequest = isRequest;
+    public void requestStream(boolean requestStream){
+        this.requestStream = requestStream;
     }
     
     /* Usually run after receiving a packet, updates the ttl, timestamp and table */
-    public boolean updatePacket(RoutingTable table,boolean isRequest,boolean requestStream){
+    public boolean updatePacket(RoutingTable table){
         boolean readyToSend = true;
         timeToLive -= 1;
         this.table = table;
-        this.isRequest = isRequest;
-        this.requestStream = requestStream;
         if(timeToLive <= 0) readyToSend = false;
         timestamp = System.currentTimeMillis();
         return readyToSend;
@@ -95,8 +111,8 @@ public class StatPacket implements Serializable{
         return "{" +
             " timestamp='" + getTimestamp() + "'" +
             ", timeToLive='" + getTimeToLive() + "'" +
-            ", isRequest='" + isRequest() + "'" +
             ", table='" + getTable() + "'" +
+            ", type='" + getType() + "'" +
             ", requestStream='" + requestStream() + "'" +
             "}";
     }

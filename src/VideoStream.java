@@ -1,6 +1,7 @@
 //VideoStream
 
 import java.io.*;
+import java.nio.channels.FileChannel;
 
 public class VideoStream {
 
@@ -35,5 +36,10 @@ public class VideoStream {
     length = Integer.parseInt(length_string);
 	
     return(fis.read(frame,0,length));
+  }
+
+  public void returnToBeginning() throws IOException{
+    FileChannel fc = fis.getChannel();
+    fc.position(0);
   }
 }
