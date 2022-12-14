@@ -84,7 +84,7 @@ public class NetworkMonitor implements Runnable {
             sendTableToAllNeighbours(socket,StatPacket.Type.TABLEREQUEST);
             while(true){
                 sendPingToAllNeighbours(socket);
-                Thread.sleep(5000);
+                Thread.sleep(1000);
             }
         } catch (SocketException e) {
             e.printStackTrace();

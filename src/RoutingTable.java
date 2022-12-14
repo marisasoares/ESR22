@@ -101,7 +101,7 @@ public class RoutingTable implements Serializable{
     public boolean updateTable(RoutingTable receivedTable, InetAddress originAddress, boolean requestStream, long delay){
         RoutingTable currentRoutingTable = this.clone();
         boolean changed = false;
-        RoutingTableRow localRow = this.getRow(originAddress);
+        RoutingTableRow localRow = currentRoutingTable.getRow(originAddress);
         if(localRow != null){
             localRow.setDelay(delay);
             localRow.setRequestStream(requestStream);

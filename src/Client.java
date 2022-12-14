@@ -41,7 +41,7 @@ public class Client implements Runnable{
     cBuf = new byte[BUFFER_SIZE];
     try {
       this.socket = socket;
-      socket.setSoTimeout(5000); // setimeout to 5s
+      //socket.setSoTimeout(5000); // setimeout to 5s
     } catch (Exception e) {
       System.out.println("[ERROR] Can't connect to server");
     }
