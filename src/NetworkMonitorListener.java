@@ -20,8 +20,10 @@ public class NetworkMonitorListener implements Runnable {
                 StatPacket statPacket;
                 statPacket = StatPacket.fromBytes(packet.getData());
                 long delay = timeWhenReceived - statPacket.getTimestamp();
-                System.out.print("\033[H\033[2J");  
+                //System.out.print("\033[H\033[2J");  
                 System.out.flush();
+                System.out.println("Tabela recebida: ");
+                System.out.println(statPacket.toString());
                 switch (statPacket.getType()) {
                     case TABLEREQUEST:
                         boolean localTableChanged = NetworkMonitor.routingTable.updateTable(statPacket.getTable(), packet.getAddress(),statPacket.requestStream(), delay);
@@ -50,7 +52,6 @@ public class NetworkMonitorListener implements Runnable {
                         NetworkMonitor.pingRequests.remove(packet.getAddress());
                         NetworkMonitor.routingTable.getRow(packet.getAddress()).setDelay(delay);     
                         NetworkMonitor.routingTable.printTable();
-      
                         break;
                     default:
                         break;

@@ -106,6 +106,10 @@ public class RoutingTable implements Serializable{
             localRow.setDelay(delay);
             localRow.setRequestStream(requestStream);
             changed = true;
+        } else {
+            localRow = new RoutingTableRow(originAddress, originAddress, 1,requestStream,delay);
+            currentRoutingTable.addRow(localRow);
+            changed = true;
         }
         for (RoutingTableRow routingTableRow : receivedTable.getTable()) {
             if(currentRoutingTable.entryExists(routingTableRow.getAddress())){

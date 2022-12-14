@@ -108,8 +108,8 @@ public class ONode extends JFrame implements ActionListener {
                     socket.receive(packet);
                     VideoForwarder.sendVideoPacketToClients(socket, packet);
                 }
-            } catch (SocketException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                System.out.println("[Error] Can't connect to server");
             }
 
         }

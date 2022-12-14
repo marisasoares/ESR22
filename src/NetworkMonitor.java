@@ -27,7 +27,7 @@ public class NetworkMonitor implements Runnable {
     public static Map<InetAddress,PingRequest> pingRequests;
 
     static int TIMEOUT = 1000;
-    static int MAX_TIMEOUT_TRIES = 3;
+    static int MAX_TIMEOUT_TRIES = 1;
 
     public NetworkMonitor(List<InetAddress> neighbours) throws UnknownHostException {
         pingRequests = new HashMap<>();
@@ -54,7 +54,7 @@ public class NetworkMonitor implements Runnable {
                     for (Iterator<Map.Entry<InetAddress,PingRequest>> it = NetworkMonitor.pingRequests.entrySet().iterator(); it.hasNext();) {
                         Map.Entry<InetAddress, PingRequest> entry = it.next();
                         if( System.currentTimeMillis() - entry.getValue().getTimestamp() > TIMEOUT){
-                            if(entry.getValue().getTimeout() >= MAX_TIMEOUT_TRIES){
+                            if(entry.getValue().getTimeout() > MAX_TIMEOUT_TRIES){
                                 it.remove();
                                 System.out.println("Client " + entry.getKey() + " offline");
                                 NetworkMonitor.routingTable.getRow(entry.getKey()).setDelay((long)-1);
@@ -68,7 +68,7 @@ public class NetworkMonitor implements Runnable {
                         }
                     }
                     try {
-                        Thread.sleep(5000);
+                        Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -108,12 +108,7 @@ public class NetworkMonitor implements Runnable {
             StatPacket.Type type) throws IOException {
         RoutingTable tableToSend = table.clone();
         tableToSend.removeRow(destinationAddress);
-        StatPacket statPacket;
-        if(ONode.isClient){
-            statPacket = new StatPacket(tableToSend, type,true);
-        } else {
-            statPacket = new StatPacket(tableToSend, type);
-        }
+        StatPacket statPacket = new StatPacket(tableToSend, type,ONode.isClient? true : false);
         DatagramPacket packet = new DatagramPacket(statPacket.convertToBytes(), statPacket.convertToBytes().length);
         packet.setAddress(destinationAddress);
         packet.setPort(NETWORK_MONITOR_PORT);
