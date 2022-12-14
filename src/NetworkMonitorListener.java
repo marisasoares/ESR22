@@ -41,12 +41,13 @@ public class NetworkMonitorListener implements Runnable {
                         }
                         break;
                     case PING:
+                        NetworkMonitor.pingRequests.remove(packet.getAddress());
                         NetworkMonitor.sendPong(socket, packet.getAddress(), statPacket);        
                         NetworkMonitor.routingTable.getRow(packet.getAddress()).setDelay(delay);
                         NetworkMonitor.routingTable.printTable();
-           
                         break;
                     case PONG:
+                        NetworkMonitor.pingRequests.remove(packet.getAddress());
                         NetworkMonitor.routingTable.getRow(packet.getAddress()).setDelay(delay);     
                         NetworkMonitor.routingTable.printTable();
       

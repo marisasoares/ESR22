@@ -5,7 +5,10 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -20,7 +23,14 @@ public class NetworkMonitor implements Runnable {
     /* Tells if the current ONode is receiving the stream at RDP Port */
     public static boolean receivingStream = false;
 
+    /* Maintains the current state of ping requests */
+    public static Map<InetAddress,PingRequest> pingRequests;
+
+    static int TIMEOUT = 1000;
+    static int MAX_TIMEOUT_TRIES = 3;
+
     public NetworkMonitor(List<InetAddress> neighbours) throws UnknownHostException {
+        pingRequests = new HashMap<>();
         for (InetAddress neighbour : neighbours) {
             RoutingTableRow row;
             if (ONode.isClient) {
@@ -36,7 +46,40 @@ public class NetworkMonitor implements Runnable {
     @Override
     public void run() {
         System.out.println("[NETWORK MONITOR] Serving on port: " + NetworkMonitor.NETWORK_MONITOR_PORT);
+        Runnable checkForPong = new Runnable() {
 
+            @Override
+            public void run() {
+                while(true){
+                    for (Iterator<Map.Entry<InetAddress,PingRequest>> it = NetworkMonitor.pingRequests.entrySet().iterator(); it.hasNext();) {
+                        Map.Entry<InetAddress, PingRequest> entry = it.next();
+                        if( System.currentTimeMillis() - entry.getValue().getTimestamp() > TIMEOUT){
+                            if(entry.getValue().getTimeout() >= MAX_TIMEOUT_TRIES){
+                                it.remove();
+                                System.out.println("Client " + entry.getKey() + " offline");
+                                NetworkMonitor.routingTable.getRow(entry.getKey()).setDelay((long)-1);
+                                NetworkMonitor.routingTable.getRow(entry.getKey()).setRequestStream(false);
+
+                            } else {
+                                System.out.println(entry.getKey() +  " - ping[" + entry.getValue().getSequenceNumber() + "] timed out: No Response");
+                                entry.getValue().setTimeout(entry.getValue().getTimeout() + 1);
+                            }
+                            
+                        }
+                    }
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                
+            }
+            
+        };
+
+        Thread t = new Thread(checkForPong);
+        t.start();
         try (DatagramSocket socket = new DatagramSocket()) {
             sendTableToAllNeighbours(socket,StatPacket.Type.TABLEREQUEST);
             while(true){
@@ -128,11 +171,16 @@ public class NetworkMonitor implements Runnable {
     }
 
     public static void sendPing(DatagramSocket socket, InetAddress destination) throws IOException{
-        StatPacket statPacket = new StatPacket(StatPacket.Type.PING, new Random().nextInt(10000));
+        if(NetworkMonitor.pingRequests.containsKey(destination)) return;
+        int sequenceNumber = new Random().nextInt(10000);
+        StatPacket statPacket = new StatPacket(StatPacket.Type.PING, sequenceNumber);
         DatagramPacket packetToSend = new DatagramPacket(statPacket.convertToBytes(), statPacket.convertToBytes().length);
         packetToSend.setAddress(destination);
         packetToSend.setPort(NETWORK_MONITOR_PORT);
         socket.send(packetToSend);
+        pingRequests.put(destination, new PingRequest(destination,sequenceNumber));
+        //System.out.println("Sent ping[" + sequenceNumber + "] to: " + destination);
+
     }
 
     public static void sendPingToAllNeighbours(DatagramSocket socket) throws IOException{
